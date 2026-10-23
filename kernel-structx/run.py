@@ -4,27 +4,29 @@ Expects dataset mount at /kaggle/input/eros483/struct-x-beam/.
 Writes only to /kaggle/working (persisted to output bundle).
 """
 
-import hashlib
 import os
 import subprocess
 import sys
 
-DATASET_DIR = "/kaggle/input/eros483/struct-x-beam"
+DATASET_TOP = "XJTU-DV-Beam"
 WORKING_DIR = "/kaggle/working"
-EXPECTED_MD5 = "d3af5b54a227be70fa932d93323d5920"
+
+
+def find_dataset_dir() -> str:
+    """Discover the dataset mount at runtime (slug layout varies; Kaggle
+    extracts the uploaded zip, so look for the top folder, not the zip)."""
+    base = "/kaggle/input"
+    for d in sorted(os.listdir(base)):
+        if os.path.isdir(os.path.join(base, d, DATASET_TOP)):
+            return os.path.join(base, d, DATASET_TOP)
+        if d == DATASET_TOP:
+            return os.path.join(base, d)
+    raise FileNotFoundError(f"{DATASET_TOP} not found under {base}: {os.listdir(base)}")
 
 
 def sh(cmd: str) -> str:
     out = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     return (out.stdout + out.stderr).strip()
-
-
-def md5_of(path: str) -> str:
-    h = hashlib.md5()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def main() -> None:
@@ -36,14 +38,20 @@ def main() -> None:
         if line.lower().startswith(("torch", "numpy", "scipy", "pyyaml")):
             print(line)
     print("=== dataset mount ===")
-    print(os.listdir(DATASET_DIR))
-    for root, _dirs, files in os.walk(DATASET_DIR):
-        for name in files:
+    dataset_dir = find_dataset_dir()
+    print("mount:", dataset_dir)
+    print(os.listdir(dataset_dir))
+    for root, _dirs, files in os.walk(dataset_dir):
+        for name in sorted(files):
             full = os.path.join(root, name)
+            rel = os.path.relpath(full, dataset_dir)
             size = os.path.getsize(full)
-            print(f"{os.path.relpath(full, DATASET_DIR)}  {size / 1e9:.2f} GB")
-            if name.endswith(".zip") and "Beam" in name:
-                print("md5:", md5_of(full), "match:", md5_of(full) == EXPECTED_MD5)
+            print(f"{rel}  {size / 1e6:.1f} MB")
+    print("=== trial inventory (LDV dir) ===")
+    ldv_dir = os.path.join(dataset_dir, "LDV")
+    print(sorted(os.listdir(ldv_dir)))
+    print("=== Code dir (author loaders) ===")
+    print(sorted(os.listdir(os.path.join(dataset_dir, "Code"))))
     print("=== struct-x smoke ===")
     sh("git clone -q https://github.com/arnabwithab/struct-x.git /kaggle/working/structx-repo")
     sys.path.insert(0, "/kaggle/working/structx-repo/src")
