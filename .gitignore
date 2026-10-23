@@ -4,3 +4,6 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+beam-dataset/*.zip
+outputs/
+XJTU-DV-Beam.zip
