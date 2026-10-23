@@ -1,7 +1,7 @@
 """LOCO folds, O4 ablations, gradient-ratio controller, checkpoints. See design sec 7-8, 10.
 
 Loss scale (binding, sec 7): ``L = L_LDV + lp*L_phys + ls*L_smooth + 0.1*L_freq``
-(mean-reduced, fp32 physics via :mod:`structx.physics`). Tuning and early-stop
+(mean-reduced, fp32 physics via :mod:`physics`). Tuning and early-stop
 use **val Delta_RMSE only**, never matched RMSE. Each O4 variant gets the same
 fixed budget (same grids x same epoch cap); best-by-val-Delta_RMSE.
 
@@ -20,8 +20,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from structx import physics
-from structx.data_loader import make_loco_splits
+import physics
+from data_loader import make_loco_splits
 
 LP_GRID = [1e-3, 1e-2, 1e-1]
 LS_GRID = [1e-4, 1e-3, 1e-2]

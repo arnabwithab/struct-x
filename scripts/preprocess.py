@@ -1,4 +1,4 @@
-"""Build voxels + window index (trial-level, no leakage). Thin CLI over structx modules."""
+"""Build voxels + window index (trial-level, no leakage). Thin CLI over src modules."""
 
 import argparse
 

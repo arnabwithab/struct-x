@@ -4,7 +4,7 @@ import math
 
 import torch
 
-from structx.physics import (
+from physics import (
     first_derivative,
     frequency_loss,
     ldv_loss,

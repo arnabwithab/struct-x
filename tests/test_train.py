@@ -9,7 +9,7 @@ import itertools
 import torch
 import torch.nn as nn
 
-from structx.train import (
+from train import (
     LP_GRID,
     LS_GRID,
     effective_lambda_p,
@@ -153,7 +153,7 @@ def test_run_fold_result_keys():
 
 
 def test_run_fold_grid_picks_min_val_delta(tmp_path):
-    from structx.train import _train_single_config, seed_everything
+    from train import _train_single_config, seed_everything
 
     lp_grid, ls_grid = [1e-3, 1e-1], [1e-4, 1e-2]
     per_cfg = {}

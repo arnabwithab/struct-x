@@ -44,11 +44,13 @@ def main() -> None:
             print(f"{os.path.relpath(full, DATASET_DIR)}  {size / 1e9:.2f} GB")
             if name.endswith(".zip") and "Beam" in name:
                 print("md5:", md5_of(full), "match:", md5_of(full) == EXPECTED_MD5)
-    print("=== structx smoke ===")
+    print("=== struct-x smoke ===")
+    sh("git clone -q https://github.com/arnabwithab/struct-x.git /kaggle/working/structx-repo")
+    sys.path.insert(0, "/kaggle/working/structx-repo/src")
     import torch
 
-    from structx.models.heads import FrequencyHead, WaveformHead
-    from structx.models.resnet3d import ResNet3DEncoder
+    from models.heads import FrequencyHead, WaveformHead
+    from models.resnet3d import ResNet3DEncoder
 
     torch.manual_seed(0)
     enc, wave, freq = ResNet3DEncoder(64), WaveformHead(64), FrequencyHead(64)

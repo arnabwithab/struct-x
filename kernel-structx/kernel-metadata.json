@@ -1,5 +1,5 @@
 {
-  "id": "eros483/structx-run",
+  "id": "eros483/struct-x-run",
   "title": "Struct-X Run",
   "code_file": "run.py",
   "language": "python",
@@ -7,7 +7,9 @@
   "is_private": "false",
   "enable_gpu": "true",
   "enable_internet": "true",
-  "dataset_sources": ["eros483/struct-x-beam"],
+  "dataset_sources": [
+    "eros483/struct-x-beam"
+  ],
   "competition_sources": [],
   "kernel_sources": [],
   "model_sources": []

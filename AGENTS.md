@@ -58,7 +58,7 @@ make clean                       # removes build artifacts, caches, __pycache__ 
 
 ```
 struct-x/
-├── src/structx/
+├── src/
 │   ├── data_loader.py           # trial inventory, LDV/event loading, windowing
 │   ├── voxel.py                 # filters → ROI crop → polarity-split voxels
 │   ├── physics.py               # fp32 finite differences + normalised L_phys

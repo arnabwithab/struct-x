@@ -10,7 +10,7 @@ import time
 import numpy as np
 import torch
 
-from structx.physics import DT, physics_loss
+from physics import DT, physics_loss
 
 
 def rmse(q_hat, q):

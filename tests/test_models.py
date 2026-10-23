@@ -7,9 +7,9 @@ for the binding shape contract (microB,2,B,224,224)->(microB,1000)+(microB,).
 import pytest
 import torch
 
-from structx.models.heads import FrequencyHead, WaveformHead
-from structx.models.resnet3d import ResNet3DEncoder
-from structx.models.timesformer import TimeSformerEncoder
+from models.heads import FrequencyHead, WaveformHead
+from models.resnet3d import ResNet3DEncoder
+from models.timesformer import TimeSformerEncoder
 
 T_OUT = 1000
 

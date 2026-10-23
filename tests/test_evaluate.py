@@ -9,8 +9,8 @@ import math
 import numpy as np
 import torch
 
-from structx import evaluate as ev
-from structx.physics import DT, physics_loss
+import evaluate as ev
+from physics import DT, physics_loss
 
 MATCHED = [1.0, 2.0, 3.0]
 SHIFTED = [2.0, 3.0, 4.0]

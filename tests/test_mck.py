@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pytest
 
-from structx.mck_fit import fit_mck, load_mck, save_mck
+from mck_fit import fit_mck, load_mck, save_mck
 
 FS = 1000.0
 
@@ -76,6 +76,6 @@ def test_too_short_signal_raises():
 
 
 def test_scale_convention_documented():
-    import structx.mck_fit as mck_fit
+    import mck_fit as mck_fit
 
     assert "unidentifiable" in mck_fit.__doc__

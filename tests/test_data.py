@@ -8,7 +8,8 @@ B in 5..9, split leakage, val-shift/test-shift separation.
 import numpy as np
 import pytest
 
-from structx import data_loader, voxel
+import data_loader
+import voxel
 
 
 # ---------------------------------------------------------------- LDV units

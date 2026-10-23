@@ -46,7 +46,7 @@ make clean       # removes build artifacts, caches, __pycache__ etc.
 ## Layout
 
 ```
-src/structx/
+src/
   data_loader.py, voxel.py      # trial inventory, LDV units, voxels, LOCO splits
   physics.py, mck_fit.py        # fp32 SDOF residual (fp16 forbidden), m=1 fit
   models/timesformer.py         # ported divided-attention encoder (CC-NC 4.0, research-only)

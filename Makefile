@@ -14,13 +14,13 @@ preprocess: ## builds voxels + window index (trial-level, no leakage)
 	uv run python scripts/preprocess.py --config configs/base.yaml
 
 smoke: ## shape/memory smoke test (encoder -> heads, logs max_memory)
-	uv run python -c "import torch; from structx.models.resnet3d import *; print(torch.cuda.max_memory_allocated() if torch.cuda.is_available() else 0)"
+	uv run python -c "import torch; from models.resnet3d import *; print(torch.cuda.max_memory_allocated() if torch.cuda.is_available() else 0)"
 
 train: ## LOCO training, all O4 ablations
 	bash scripts/run_folds.sh
 
 eval: ## TEST-trial metrics, Delta/sigma estimators, O5 verdict
-	uv run python -m structx.evaluate --config configs/base.yaml
+	uv run python -m evaluate --config configs/base.yaml
 
 test: ## runs all unit tests
 	uv run pytest -q
