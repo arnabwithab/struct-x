@@ -1,0 +1,37 @@
+# Struct-X base config — binding defaults from docs/design.md sec 5-8, 10.
+representation:
+  B: 5            # default temporal bins; ablate 5-9
+  H: 224          # longest side resize, zero-pad square per sec 6 adapter
+  W: 224
+  channels: 2     # polarity = channels, T=B frames
+  fs_ldv: 1000    # Hz resample
+  T: 1000         # samples per 1.0 s window
+  dt: 0.001       # s
+  window_s: 1.0
+  stride_s: 0.5
+  exclusion_s: 0.1  # ignore windows starting <100 ms post-trigger
+  lp_cutoff_hz: 500 # 4th-order Butterworth at Nyquist
+  eps: 1.0e-6
+
+loss:
+  lambda_p_grid: [0.001, 0.01, 0.1]
+  lambda_s_grid: [0.0001, 0.001, 0.01]
+  lambda_f: 0.1   # fixed, never tuned
+
+optim:
+  lr_min: 0.0001
+  lr_max: 0.0003
+  lr: 0.0002
+  micro_batch_4060: 4
+  micro_batch_t4: 8
+  effective_batch: 16
+  max_epochs: 50
+  patience: 10    # early-stop on val Delta_RMSE
+
+physics:
+  m: 1.0          # by convention, scale unidentifiable
+
+data:
+  trial_window_note: "true budget ~90-270 windows for 30 trials, not 2-3k"
+  seed: 0
+  val_shift_frac: 0.5  # 50/50 val-shift / test-shift per shift condition

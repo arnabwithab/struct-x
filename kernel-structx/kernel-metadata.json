@@ -1,0 +1,14 @@
+{
+  "id": "eros483/structx-run",
+  "title": "Struct-X Run",
+  "code_file": "run.py",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "false",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "dataset_sources": ["eros483/struct-x-beam"],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
