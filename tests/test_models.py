@@ -7,7 +7,7 @@ for the binding shape contract (microB,2,B,224,224)->(microB,1000)+(microB,).
 import pytest
 import torch
 
-from models.heads import FrequencyHead, WaveformHead
+from models.heads import FrequencyHead, WaveformFrequencyModel, WaveformHead
 from models.resnet3d import ResNet3DEncoder
 from models.timesformer import TimeSformerEncoder
 
@@ -61,3 +61,13 @@ def test_timesformer_binding_shape_224():
     enc = TimeSformerEncoder(img_size=224, patch_size=32, num_frames=5, dim=48, depth=2, heads=2)
     x = torch.randn(1, 2, 5, 224, 224)
     assert enc(x).shape == (1, 48)
+
+
+def test_combined_model_contract():
+    torch.manual_seed(0)
+    model = WaveformFrequencyModel(ResNet3DEncoder(32), 32)
+    x = torch.randn(1, 2, 3, 64, 64)
+    q_hat, f_hat = model(x)
+    assert q_hat.shape == (1, 1000) and f_hat.shape == (1,)
+    assert torch.isfinite(f_hat).all() and (f_hat > 0).all()
+    (q_hat.sum() + f_hat.sum()).backward()

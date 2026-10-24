@@ -26,3 +26,17 @@ class FrequencyHead(nn.Module):
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         return self.softplus(self.net(z)).squeeze(-1)
+
+
+class WaveformFrequencyModel(nn.Module):
+    """Encoder + both heads: (N,2,B,224,224) -> (q_hat (N,T), f_hat (N,))."""
+
+    def __init__(self, encoder: nn.Module, latent_dim: int, t_out: int = 1000):
+        super().__init__()
+        self.encoder = encoder
+        self.wave = WaveformHead(latent_dim, t_out)
+        self.freq = FrequencyHead(latent_dim)
+
+    def forward(self, x: torch.Tensor):
+        z = self.encoder(x)
+        return self.wave(z), self.freq(z)

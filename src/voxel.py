@@ -9,6 +9,32 @@ ROI_FRAC = 0.5  # y-band where mean projection >= 50% of peak
 ROI_PAD_PX = 8  # pad on each side
 MAX_SIDE = 256  # resize longest side to at most this (size from headers)
 EPS = 1e-6  # frozen standardisation guard
+MODEL_SIDE = 224  # model input square (design sec 6 adapter)
+
+
+def voxel_to_model_input(vox):
+    """(2B,H,W) ROI voxel -> (2,B,224,224): longest side to 224, zero-pad square.
+
+    Returns (array, meta) with scale + pad amounts (aspect preserved, pad recorded).
+    Never upscales (mirrors compute_resize_shape).
+    """
+    from scipy import ndimage
+
+    vox = np.asarray(vox, dtype=np.float32)
+    n2, h, w = vox.shape
+    assert n2 % 2 == 0
+    b = n2 // 2
+    s = min(1.0, MODEL_SIDE / max(h, w))
+    zh, zw = max(1, int(round(h * s))), max(1, int(round(w * s)))
+    small = np.stack([ndimage.zoom(vox[c], (zh / h, zw / w), order=1) for c in range(n2)])
+    ph = MODEL_SIDE - small.shape[1]
+    pw = MODEL_SIDE - small.shape[2]
+    top, left = ph // 2, pw // 2
+    out = np.zeros((n2, MODEL_SIDE, MODEL_SIDE), dtype=np.float32)
+    out[:, top : top + small.shape[1], left : left + small.shape[2]] = small
+    out = out.reshape(b, 2, MODEL_SIDE, MODEL_SIDE).transpose(1, 0, 2, 3)
+    meta = {"scale": s, "pad": ((top, ph - top), (left, pw - left)), "in_shape": (h, w)}
+    return np.ascontiguousarray(out), meta
 
 
 def refractory_filter(xs, ys, ts, ps, refractory_us=REFRACTORY_US):
