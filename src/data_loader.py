@@ -273,11 +273,12 @@ def build_trial_windows(
     return [s for s in window_starts(usable, window_s, stride_s, exclusion_s)]
 
 
-def trial_to_training_pairs(dv_path, ldv_path, n_bins=5, ldv_stats=None, vox_stats=None):
+def trial_to_training_pairs(dv_path, ldv_path, n_bins=5, ldv_stats=None, vox_stats=None, standardize_q=True):
     """One trial -> [(voxel (2B,H,W) ROI-cropped, q (1000,))], trigger-anchored.
 
     Stats args are (mean, std); when None, per-trial stats are used — dev-only,
-    training MUST pass frozen train stats.
+    training MUST pass frozen train stats. With standardize_q=False the raw
+    resampled q is returned (unscaled) for fold-level frozen standardisation.
     """
     from voxel import (
         events_to_voxel,
@@ -305,7 +306,8 @@ def trial_to_training_pairs(dv_path, ldv_path, n_bins=5, ldv_stats=None, vox_sta
     t0 = t_raw[0]
     if ldv_stats is None:
         ldv_stats = (float(q_1k.mean()), float(q_1k.std()))
-    q_1k = apply_frozen_zscore(q_1k, *ldv_stats)
+    if standardize_q:
+        q_1k = apply_frozen_zscore(q_1k, *ldv_stats)
 
     span_s = (float(ts.max()) - te_trig) / 1e6
     pairs = []
