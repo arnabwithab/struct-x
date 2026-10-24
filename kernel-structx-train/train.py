@@ -33,28 +33,28 @@ def main() -> None:
     print("=== nvidia-smi ===")
     print(sh("nvidia-smi"))
     print("=== clone struct-x ===")
-    print(sh(f"git clone -q https://github.com/arnabwithab/struct-x.git {WORKING_DIR}/structx-repo"))
+    print(
+        sh(f"git clone -q https://github.com/arnabwithab/struct-x.git {WORKING_DIR}/structx-repo")
+    )
     sys.path.insert(0, f"{WORKING_DIR}/structx-repo/src")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("device:", device, torch.cuda.get_device_name(0) if device == "cuda" else "")
 
     from data_loader import (
-        apply_frozen_zscore,
         compute_train_stats,
         condition_of,
         make_loco_splits,
         pair_trials,
         parse_ldv_txt,
         pick_mck_fit_trial,
-        preprocess_ldv,
         trial_to_training_pairs,
     )
-    from evaluate import delta_m, mae, pearson_r, rel_freq_error, rmse
+    from evaluate import delta_m, rel_freq_error, rmse
     from mck_fit import fit_mck
     from models.heads import WaveformFrequencyModel
     from models.resnet3d import ResNet3DEncoder
     from train import run_fold
-    from voxel import compute_voxel_train_stats, standardise_voxel, voxel_to_model_input
+    from voxel import compute_voxel_train_stats, voxel_to_model_input
 
     archive = find_dir("XJTU-DV-Beam")
     pairs = pair_trials(os.path.join(archive, "DV"), os.path.join(archive, "LDV"))
@@ -76,7 +76,12 @@ def main() -> None:
     fold = folds[PILOT_HELD]
     print("pilot fold:", {k: len(v) for k, v in fold.items()})
     train_ids, vm_ids, tm_ids, vs_ids, ts_ids = (
-        fold["train"], fold["val_matched"], fold["test_matched"], fold["val_shift"], fold["test_shift"])
+        fold["train"],
+        fold["val_matched"],
+        fold["test_matched"],
+        fold["val_shift"],
+        fold["test_shift"],
+    )
 
     def windows_of(ids):
         out = []
@@ -86,8 +91,7 @@ def main() -> None:
 
     train_w = windows_of(train_ids)
     q_mean, q_std = compute_train_stats([q for _, _, q in train_w])
-    vx_mean, vx_std = compute_voxel_train_stats(
-        [voxel_to_model_input(v)[0] for _, v, _ in train_w])
+    vx_mean, vx_std = compute_voxel_train_stats([voxel_to_model_input(v)[0] for _, v, _ in train_w])
     print(f"frozen stats: q_mean={q_mean:.4f} q_std={q_std:.4f}", flush=True)
 
     def batchify(items, micro):
@@ -96,8 +100,12 @@ def main() -> None:
             chunk = items[i : i + micro]
             v = torch.stack([torch.from_numpy(voxel_to_model_input(w[1])[0]) for w in chunk])
             v = torch.stack(
-                [(torch.from_numpy(x) - torch.from_numpy(vx_mean).view(-1, 1, 1))
-                 / (torch.from_numpy(vx_std).view(-1, 1, 1) + 1e-6) for x in v])
+                [
+                    (torch.from_numpy(x) - torch.from_numpy(vx_mean).view(-1, 1, 1))
+                    / (torch.from_numpy(vx_std).view(-1, 1, 1) + 1e-6)
+                    for x in v
+                ]
+            )
             q = torch.stack([torch.from_numpy((w[2] - q_mean) / (q_std + 1e-6)) for w in chunk])
             f = torch.tensor([trial_f[w[0]] for w in chunk], dtype=torch.float32)
             batches.append((v.float(), q.float(), f))
@@ -123,7 +131,10 @@ def main() -> None:
     t_mck, v_mck = trial_ldv[mck_trial]
     mck = fit_mck(v_mck, 1 / float(np.median(np.diff(t_mck))))
     m, c, k = mck["m"], mck["c"], mck["k"]
-    print(f"mck from {mck_trial}: fd={mck['fd']:.2f} fn={mck['fn']:.2f} m={m} k={k:.1f} c={c:.4f}", flush=True)
+    print(
+        f"mck from {mck_trial}: fd={mck['fd']:.2f} fn={mck['fn']:.2f} m={m} k={k:.1f} c={c:.4f}",
+        flush=True,
+    )
 
     train_b = batchify(train_w, micro)
     vm_b = batchify(windows_of(vm_ids), micro)
@@ -131,10 +142,23 @@ def main() -> None:
     results = {}
     for variant in ["data_only", "smoothness_only", "sdof_only", "both"]:
         ckpt = f"{WORKING_DIR}/ckpts/{PILOT_HELD}/{variant}.pt"
-        res = run_fold(train_b, vm_b, vs_b, make_model, m, c, k,
-                       variant=variant, micro_batch=micro, device=device, ckpt_path=ckpt)
+        res = run_fold(
+            train_b,
+            vm_b,
+            vs_b,
+            make_model,
+            m,
+            c,
+            k,
+            variant=variant,
+            micro_batch=micro,
+            device=device,
+            ckpt_path=ckpt,
+        )
         results[variant] = res
-        show = {k: (round(v, 5) if isinstance(v, float) else v) for k, v in res.items() if k != "state"}
+        show = {
+            k: (round(v, 5) if isinstance(v, float) else v) for k, v in res.items() if k != "state"
+        }
         print(f"{variant}: {json.dumps(show)}", flush=True)
 
     # ---- eval on TEST trials ----
@@ -143,7 +167,9 @@ def main() -> None:
     metrics = {}
     for variant in results:
         model = make_model().to(device)
-        model.load_state_dict(torch.load(f"{WORKING_DIR}/ckpts/{PILOT_HELD}/{variant}.pt", map_location=device))
+        model.load_state_dict(
+            torch.load(f"{WORKING_DIR}/ckpts/{PILOT_HELD}/{variant}.pt", map_location=device)
+        )
         model.eval()
         for split_name, batches in [("test_matched", tm_b), ("test_shift", ts_b)]:
             rms, fr = [], []
@@ -155,16 +181,34 @@ def main() -> None:
                         rms.append(rmse(q[i].numpy(), qh[i]))
                         fr.append(rel_freq_error(float(fh[i].cpu()), float(f[i])))
             key = f"{variant}/{split_name}"
-            metrics[key] = {"rmse_mean": float(np.mean(rms)), "rmse_std": float(np.std(rms, ddof=1)),
-                            "freq_mean": float(np.mean(fr)), "freq_std": float(np.std(fr, ddof=1))}
+            metrics[key] = {
+                "rmse_mean": float(np.mean(rms)),
+                "rmse_std": float(np.std(rms, ddof=1)),
+                "freq_mean": float(np.mean(fr)),
+                "freq_std": float(np.std(fr, ddof=1)),
+            }
     for variant in results:
-        dm = delta_m(metrics[f"{variant}/test_matched"]["rmse_mean"],
-                     metrics[f"{variant}/test_shift"]["rmse_mean"])
-        print(f"{variant}: Delta_RMSE(test)={dm:.4f} matched={metrics[f'{variant}/test_matched']['rmse_mean']:.4f}", flush=True)
+        dm = delta_m(
+            metrics[f"{variant}/test_matched"]["rmse_mean"],
+            metrics[f"{variant}/test_shift"]["rmse_mean"],
+        )
+        print(
+            f"{variant}: Delta_RMSE(test)={dm:.4f} matched={metrics[f'{variant}/test_matched']['rmse_mean']:.4f}",
+            flush=True,
+        )
     with open(f"{WORKING_DIR}/pilot_results.json", "w") as f:
-        json.dump({"results": results, "metrics": metrics,
-                   "mck": {k: (float(v) if k in ('k', 'c', 'fn', 'fd') else v) for k, v in mck.items()},
-                   "mck_trial": mck_trial, "micro": micro}, f)
+        json.dump(
+            {
+                "results": results,
+                "metrics": metrics,
+                "mck": {
+                    k: (float(v) if k in ("k", "c", "fn", "fd") else v) for k, v in mck.items()
+                },
+                "mck_trial": mck_trial,
+                "micro": micro,
+            },
+            f,
+        )
     print("DONE")
 
 
