@@ -95,20 +95,21 @@ def main() -> None:
     print(f"frozen stats: q_mean={q_mean:.4f} q_std={q_std:.4f}", flush=True)
 
     def batchify(items, micro):
+        mu = torch.from_numpy(vx_mean).view(-1, 1, 1).float()
+        sigma = torch.from_numpy(vx_std).view(-1, 1, 1).float()
         batches = []
         for i in range(0, len(items), micro):
             chunk = items[i : i + micro]
-            v = torch.stack([torch.from_numpy(voxel_to_model_input(w[1])[0]) for w in chunk])
             v = torch.stack(
                 [
-                    (torch.from_numpy(x) - torch.from_numpy(vx_mean).view(-1, 1, 1))
-                    / (torch.from_numpy(vx_std).view(-1, 1, 1) + 1e-6)
-                    for x in v
+                    (torch.from_numpy(voxel_to_model_input(w[1])[0]).float() - mu) / (sigma + 1e-6)
+                    for w in chunk
                 ]
             )
             q = torch.stack([torch.from_numpy((w[2] - q_mean) / (q_std + 1e-6)) for w in chunk])
             f = torch.tensor([trial_f[w[0]] for w in chunk], dtype=torch.float32)
-            batches.append((v.float(), q.float(), f))
+            batches.append((v, q.float(), f))
+        return batches
         return batches
 
     def make_model():
