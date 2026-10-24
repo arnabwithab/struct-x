@@ -18,11 +18,10 @@ def sh(cmd: str) -> str:
 
 
 def find_archive_dir() -> str:
-    base = "/kaggle/input"
-    for d in sorted(os.listdir(base)):
-        if os.path.isdir(os.path.join(base, d, "XJTU-DV-Beam")):
-            return os.path.join(base, d, "XJTU-DV-Beam")
-    raise FileNotFoundError(f"archive not found under {base}: {os.listdir(base)}")
+    for root, dirs, _files in os.walk("/kaggle/input"):
+        if "XJTU-DV-Beam" in dirs:
+            return os.path.join(root, "XJTU-DV-Beam")
+    raise FileNotFoundError("XJTU-DV-Beam not found under /kaggle/input")
 
 
 def main() -> None:
