@@ -1,6 +1,7 @@
 """Hot-pixel/refractory filters, ROI crop, B-bin x 2-polarity voxels. See design sec 5-6."""
 
 import numpy as np
+from scipy import ndimage
 
 DEFAULT_B = 5  # default temporal bins (ablate 5-9)
 REFRACTORY_US = 100  # drop same-pixel events <100 us apart
@@ -18,8 +19,6 @@ def voxel_to_model_input(vox):
     Returns (array, meta) with scale + pad amounts (aspect preserved, pad recorded).
     Never upscales (mirrors compute_resize_shape).
     """
-    from scipy import ndimage
-
     vox = np.asarray(vox, dtype=np.float32)
     n2, h, w = vox.shape
     assert n2 % 2 == 0

@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-from scipy import ndimage
 
 from voxel import voxel_to_model_input
 
