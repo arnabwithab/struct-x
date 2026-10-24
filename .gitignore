@@ -7,3 +7,5 @@ __pycache__/
 beam-dataset/*.zip
 outputs/
 XJTU-DV-Beam.zip
+beam-vox/
+vox-store/
