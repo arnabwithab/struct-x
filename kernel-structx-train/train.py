@@ -29,7 +29,9 @@ def main() -> None:
     print("=== nvidia-smi ===")
     print(sh("nvidia-smi"))
     print("=== clone struct-x ===")
-    print(sh(f"git clone -q https://github.com/arnabwithab/struct-x.git {WORKING_DIR}/structx-repo"))
+    print(
+        sh(f"git clone -q https://github.com/arnabwithab/struct-x.git {WORKING_DIR}/structx-repo")
+    )
     sys.path.insert(0, f"{WORKING_DIR}/structx-repo/src")
     archive = find_archive_dir()
     print("archive:", archive)
