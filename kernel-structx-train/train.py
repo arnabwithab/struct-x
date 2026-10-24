@@ -11,8 +11,8 @@ import subprocess
 import sys
 
 WORKING_DIR = "/kaggle/working"
-# Campaign mode: pilot (v4) ran ["On_set1"]; v5 runs the remaining five folds.
-FOLDS_TO_RUN = ["Off_set1", "Off_set2", "Off_set3", "On_set2", "On_set3"]
+# Campaign mode: pilot (v4) errored before training, so v5 runs all six folds.
+FOLDS_TO_RUN = ["On_set1", "Off_set1", "Off_set2", "Off_set3", "On_set2", "On_set3"]
 
 
 def sh(cmd: str) -> str:
@@ -55,7 +55,7 @@ def main() -> None:
     from models.heads import WaveformFrequencyModel
     from models.resnet3d import ResNet3DEncoder
     from train import run_fold
-    from voxel import compute_voxel_train_stats, voxel_to_model_input
+    from voxel import voxel_to_model_input
 
     archive = find_dir("XJTU-DV-Beam")
     pairs = pair_trials(os.path.join(archive, "DV"), os.path.join(archive, "LDV"))
@@ -102,11 +102,11 @@ def main() -> None:
         train_ids = fold["train"]
         train_w = windows_of(train_ids)
         q_mean, q_std = compute_train_stats([q for _, _, q in train_w])
-        vx_mean, vx_std = compute_voxel_train_stats(
-            [voxel_to_model_input(v)[0] for _, v, _ in train_w]
-        )
-        mu = torch.from_numpy(vx_mean).view(-1, 1, 1).float()
-        sigma = torch.from_numpy(vx_std).view(-1, 1, 1).float()
+        vx_stack = np.stack([voxel_to_model_input(v)[0] for _, v, _ in train_w])
+        vx_mean = vx_stack.mean(axis=(0, 3, 4))  # (N,2,B,H,W) -> per (polarity, bin)
+        vx_std = vx_stack.std(axis=(0, 3, 4))
+        mu = torch.from_numpy(vx_mean).view(2, -1, 1, 1).float()
+        sigma = torch.from_numpy(vx_std).view(2, -1, 1, 1).float()
 
         def batchify(items):
             batches = []
