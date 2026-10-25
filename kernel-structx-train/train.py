@@ -186,8 +186,8 @@ def main() -> None:
                 }
         for variant in results:
             dm = delta_m(
-                metrics[f"{variant}/test_matched"]["rmse_mean"],
-                metrics[f"{variant}/test_shift"]["rmse_mean"],
+                [metrics[f"{variant}/test_matched"]["rmse_mean"]],
+                [metrics[f"{variant}/test_shift"]["rmse_mean"]],
             )
             print(
                 f"{held}/{variant}: Delta_RMSE(test)={dm:.4f} "
