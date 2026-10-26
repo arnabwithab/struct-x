@@ -26,7 +26,6 @@ from data_loader import (
 from evaluate import (
     delta_m,
     matched_degradation_report,
-    o5_verdict,
     rel_freq_error,
     rmse,
     rq4_compare,
@@ -56,8 +55,10 @@ def trial_metrics(model, windows, f_target, device="cpu"):
             per_trial.setdefault(trial_id, []).append(
                 (rmse(q, qh), rel_freq_error(float(fh.cpu()), f_target[trial_id]))
             )
-    return {t: (float(np.mean([r for r, _ in v])), float(np.mean([f for _, f in v])))
-            for t, v in per_trial.items()}
+    return {
+        t: (float(np.mean([r for r, _ in v])), float(np.mean([f for _, f in v])))
+        for t, v in per_trial.items()
+    }
 
 
 def main() -> None:
@@ -98,8 +99,10 @@ def main() -> None:
         fold_res = {"mck_trial": None, "variants": {}}
         for variant in VARIANTS:
             ckpt = None
-            for root in [os.path.join(args.ckpts, "v6", "ckpts", held),
-                         os.path.join(args.ckpts, "v7", "ckpts", held)]:
+            for root in [
+                os.path.join(args.ckpts, "v6", "ckpts", held),
+                os.path.join(args.ckpts, "v7", "ckpts", held),
+            ]:
                 cand = os.path.join(root, f"{variant}.pt")
                 if os.path.isfile(cand):
                     ckpt = cand
@@ -108,8 +111,12 @@ def main() -> None:
                 continue
             model = WaveformFrequencyModel(ResNet3DEncoder(512), 512)
             model.load_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
-            tm = trial_metrics(model, norm([w for t in fold["test_matched"] for w in raw[t]]), trial_f)
-            ts = trial_metrics(model, norm([w for t in fold["test_shift"] for w in raw[t]]), trial_f)
+            tm = trial_metrics(
+                model, norm([w for t in fold["test_matched"] for w in raw[t]]), trial_f
+            )
+            ts = trial_metrics(
+                model, norm([w for t in fold["test_shift"] for w in raw[t]]), trial_f
+            )
             m_r = [tm[t][0] for t in sorted(tm)]
             s_r = [ts[t][0] for t in sorted(ts)]
             m_f = [tm[t][1] for t in sorted(tm)]
@@ -128,21 +135,33 @@ def main() -> None:
         v = fold_res["variants"]
         if "data_only" in v and "both" in v:
             b, p = v["data_only"], v["both"]
-            fold_res["o5_rmse"] = dict(zip(
-                ["R", "sigma_R", "wins", "statement"],
-                [b["delta_rmse"] - p["delta_rmse"],
-                 float(np.sqrt(b["se_rmse"] ** 2 + p["se_rmse"] ** 2)), None, ""],
-            ))
+            fold_res["o5_rmse"] = dict(
+                zip(
+                    ["R", "sigma_R", "wins", "statement"],
+                    [
+                        b["delta_rmse"] - p["delta_rmse"],
+                        float(np.sqrt(b["se_rmse"] ** 2 + p["se_rmse"] ** 2)),
+                        None,
+                        "",
+                    ],
+                )
+            )
             r, s = fold_res["o5_rmse"]["R"], fold_res["o5_rmse"]["sigma_R"]
             fold_res["o5_rmse"]["wins"] = bool(r > s)
             fold_res["o5_rmse"]["statement"] = (
-                f"physics wins: R={r:.4f} > sigma_R={s:.4f}" if r > s
-                else f"NON-IDENTIFIABLE: R={r:.4f} <= sigma_R={s:.4f}")
+                f"physics wins: R={r:.4f} > sigma_R={s:.4f}"
+                if r > s
+                else f"NON-IDENTIFIABLE: R={r:.4f} <= sigma_R={s:.4f}"
+            )
             fold_res["rq4"] = rq4_compare(b["delta_freq"], b["delta_rmse"])
             fold_res["matched_harm"] = matched_degradation_report(
-                [b["rmse_matched"]["mean"]], [p["rmse_matched"]["mean"]])
+                [b["rmse_matched"]["mean"]], [p["rmse_matched"]["mean"]]
+            )
         verdict["folds"][held] = fold_res
-        print(f"fold {held}: " + (fold_res.get("o5_rmse", {}).get("statement", "incomplete")), flush=True)
+        print(
+            f"fold {held}: " + (fold_res.get("o5_rmse", {}).get("statement", "incomplete")),
+            flush=True,
+        )
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w") as f:
