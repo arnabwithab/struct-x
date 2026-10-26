@@ -92,7 +92,7 @@ def main() -> None:
         parse_ldv_txt,
         pick_mck_fit_trial,
     )
-    from evaluate import delta_m, rel_freq_error, rmse
+    from evaluate import rel_freq_error, rmse
     from mck_fit import fit_mck
     from models.heads import WaveformFrequencyModel
     from models.timesformer import KINETICS_SHA256, KINETICS_URL, TimeSformerEncoder
