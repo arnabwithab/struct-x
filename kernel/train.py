@@ -11,8 +11,9 @@ import subprocess
 import sys
 
 WORKING_DIR = "/kaggle/working"
-# Campaign mode: v6 completed 5 folds; v7 runs the cancelled tail fold only.
-FOLDS_TO_RUN = ["On_set3"]
+# Campaign mode: F011 pilot runs pretrained TimeSformer on one fold.
+FOLDS_TO_RUN = ["On_set1"]
+USE_PRETRAINED = True
 
 
 def sh(cmd: str) -> str:
@@ -54,6 +55,7 @@ def main() -> None:
     from mck_fit import fit_mck
     from models.heads import WaveformFrequencyModel
     from models.resnet3d import ResNet3DEncoder
+    from models.timesformer import KINETICS_SHA256, KINETICS_URL, TimeSformerEncoder
     from train import run_fold
     from voxel import voxel_to_model_input
 
@@ -74,7 +76,20 @@ def main() -> None:
     conditions = {t: condition_of(t) for t, _, _ in pairs}
     folds = make_loco_splits(conditions, seed=0)
 
+    if USE_PRETRAINED:
+        import urllib.request
+
+        kin_path = f"{WORKING_DIR}/kinetics.bin"
+        if not os.path.isfile(kin_path):
+            print("downloading kinetics weights (once)...", flush=True)
+            urllib.request.urlretrieve(KINETICS_URL, kin_path)
+        kin_url = "file://" + kin_path
+
     def make_model():
+        if USE_PRETRAINED:
+            enc = TimeSformerEncoder(num_frames=5)
+            enc.load_kinetics_weights(url=kin_url, sha256=KINETICS_SHA256)
+            return WaveformFrequencyModel(enc, 768)
         return WaveformFrequencyModel(ResNet3DEncoder(512), 512)
 
     # micro-batch probe for OOM ladder (design sec 10: start 8 on T4)
