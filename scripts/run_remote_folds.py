@@ -173,7 +173,7 @@ def main() -> None:
             return batches
 
         t_mck, v_mck = parse_ldv_txt(
-            dict((t, l) for t, _, l in pairs)[pick_mck_fit_trial(fold["train"])]
+            dict((t, p) for t, _, p in pairs)[pick_mck_fit_trial(fold["train"])]
         )
         mck = fit_mck(v_mck, 1 / float(np.median(np.diff(t_mck))))
         m, c, k = mck["m"], mck["c"], mck["k"]
