@@ -1,0 +1,14 @@
+{
+  "id": "eros483/struct-x-timing",
+  "title": "Struct-X Timing",
+  "code_file": "timing.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "false",
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
