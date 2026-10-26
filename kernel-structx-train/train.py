@@ -11,8 +11,8 @@ import subprocess
 import sys
 
 WORKING_DIR = "/kaggle/working"
-# Campaign mode: pilot (v4) errored before training, so v5 runs all six folds.
-FOLDS_TO_RUN = ["On_set1", "Off_set1", "Off_set2", "Off_set3", "On_set2", "On_set3"]
+# Campaign mode: v6 completed 5 folds; v7 runs the cancelled tail fold only.
+FOLDS_TO_RUN = ["On_set3"]
 
 
 def sh(cmd: str) -> str:
