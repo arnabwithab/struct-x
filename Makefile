@@ -1,4 +1,4 @@
-.PHONY: help setup download preprocess smoke train eval test style clean
+.PHONY: help setup download preprocess smoke train eval test style clean kernel-smoke kernel-train kernel-timing
 .DEFAULT_GOAL := help
 
 help: ## show targets
@@ -26,8 +26,17 @@ test: ## runs all unit tests
 	uv run pytest -q
 
 style: ## formats + lints all code
-	uv run black src tests scripts
-	uv run ruff check src tests scripts
+	uv run black src tests scripts kernel
+	uv run ruff check src tests scripts kernel
+
+kernel-smoke: ## push smoke kernel (env log + inventory + shape smoke)
+	python3 scripts/stamp_kernel.py smoke && kaggle kernels push -p kernel
+
+kernel-train: ## push training kernel (LOCO campaign)
+	python3 scripts/stamp_kernel.py train && kaggle kernels push -p kernel
+
+kernel-timing: ## push timing micro-kernel (15a ms/window)
+	python3 scripts/stamp_kernel.py timing && kaggle kernels push -p kernel
 
 clean: ## removes build artifacts, caches, __pycache__ etc.
 	rm -rf __pycache__ .pytest_cache .ruff_cache build dist *.egg-info

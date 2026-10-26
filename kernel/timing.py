@@ -19,7 +19,9 @@ def main() -> None:
     import torch
 
     print(sh("nvidia-smi --query-gpu=name --format=csv,noheader"))
-    print(sh("git clone -q https://github.com/arnabwithab/struct-x.git /kaggle/working/structx-repo"))
+    print(
+        sh("git clone -q https://github.com/arnabwithab/struct-x.git /kaggle/working/structx-repo")
+    )
     sys.path.insert(0, "/kaggle/working/structx-repo/src")
 
     from models.heads import WaveformFrequencyModel
