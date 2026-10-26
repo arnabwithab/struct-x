@@ -66,7 +66,9 @@ def main() -> None:
     ap.add_argument("--archive", default="beam-dataset/XJTU-DV-Beam")
     ap.add_argument("--ckpts", default="outputs")
     ap.add_argument("--out", default="results/final_verdict.json")
+    ap.add_argument("--folds", default="", help="comma-separated held conditions, empty = all")
     args = ap.parse_args()
+    want = set(args.folds.split(",")) if args.folds else None
 
     pairs = pair_trials(os.path.join(args.archive, "DV"), os.path.join(args.archive, "LDV"))
     raw, trial_f = {}, {}
@@ -81,6 +83,8 @@ def main() -> None:
     folds = make_loco_splits(conditions, seed=0)
     verdict = {"folds": {}}
     for held, fold in folds.items():
+        if want is not None and held not in want:
+            continue
         train_w = [w for t in fold["train"] for w in raw[t]]
         q_mean, q_std = compute_train_stats([w[2] for w in train_w])
         vx = np.stack([voxel_to_model_input(w[1])[0] for w in train_w])
