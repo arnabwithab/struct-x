@@ -1,74 +1,39 @@
 <h1 align="center">struct-x</h1>
 
-<p align="center">Physics-aware event vision for robust non-contact structural vibration monitoring.</p>
+<p align="center">
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" /></a>
+  <img src="https://img.shields.io/badge/python-3.10+-blue" alt="Python 3.10+" />
+  <a href="https://www.kaggle.com/code/eros483/struct-x-train"><img src="https://img.shields.io/badge/NVIDIA_T4-76B900?logo=nvidia&logoColor=white" alt="Runs on NVIDIA T4" /></a>
+  <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code_style-black-000000" alt="Code style: black" /></a>
+</p>
 
-Struct-X reconstructs the vibration waveform a collocated laser Doppler
-vibrometer (LDV) would have recorded — from an event-camera stream — and holds
-up when sensing conditions (illumination, contrast threshold, bias) drift.
-Single rig only: XJTU-DV-Beam hammer-impact free decay (30 trials). A frozen
-single-degree-of-freedom physics residual regularises a spatiotemporal
-event-vision encoder. The headline metric is the robustness gap `Δ`, with a
-pre-registered falsification rule: if physics doesn't beat trial-to-trial
-noise, that negative result is reported, not hidden.
+<p align="center">Event cameras watch vibration as a flicker of pixels. Struct-X turns
+that flicker into the waveform a laser vibrometer would have recorded — and
+stays accurate when lighting or camera settings change.</p>
 
 ## What it does
 
-- Reconstructs the LDV waveform and dominant frequency from events, per
-  acquisition condition.
-- Measures stability as `Δ = metric(shifted) − metric(matched)` across
-  illumination/threshold shifts — and tries to minimise it.
-- Works with 30 independent trials: splits are trial-level, never window-level.
-- Ablates what helps: SDOF physics residual vs temporal smoothness vs both.
-
-Out of scope: damage classification (the dataset carries no damage labels).
-No claims beyond this rig.
+- Rebuilds the vibration waveform and its dominant frequency from an event
+  stream, matching what a collocated laser vibrometer measures.
+- Holds that accuracy steady across illumination and threshold shifts instead
+  of degrading silently.
+- Learns from only 30 hammer-impact trials, split trial-wise so nothing leaks.
+- Tests whether a physics residual is what actually helps, with a
+  pre-registered rule that also accepts "no measurable effect" as the answer.
 
 ## Quickstart
 
-All commands run via `make` from the project root. Requires `uv`.
-
 ```bash
-make setup       # install dependencies
-make download    # fetch XJTU-DV-Beam.zip, verify checksum, print inventory
+git clone https://github.com/arnabwithab/struct-x.git
+cd struct-x
+make setup       # install uv (if needed) + dependencies
+make download    # fetch the vibration dataset, verify checksum
 make preprocess  # build voxel store + window index
-make smoke       # shape/memory smoke test
 make train       # leave-one-condition-out training, all ablations
-make eval        # test-trial metrics, Δ estimators, falsification verdict
-make test        # unit tests
-make style       # format + lint
-make clean       # remove build artifacts
+make eval        # test-trial metrics and robustness verdict
 ```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
-
-## Layout
-
-```
-src/                  # importable library (every module has a test in tests/)
-  data_loader.py      # trial inventory, LDV units, windowing, LOCO splits
-  voxel.py            # event filtering, ROI crop, polarity-split voxels
-  physics.py          # SDOF residual, fp32 finite differences
-  mck_fit.py          # log-decrement fit (m=1) on one train trial
-  models/             # TimeSformer port, 3D-ResNet control, waveform/frequency heads
-  train.py            # LOCO folds, ablation grid, gradient-ratio controller
-  evaluate.py         # metrics, Δ/se estimators, falsification rule
-configs/base.yaml     # bins, loss weights, learning rate, batch sizes, seeds
-scripts/              # thin CLIs over src (download, preprocess, eval, Kaggle helpers)
-tests/                # mirrors src, one module per module
-kernel/               # Kaggle entry points (smoke, train, timing)
-data/                 # local dataset staging (never committed)
-```
-
-## Key rules
-
-- Trial-level splits only; physics fit on one train-condition trial.
-- Physics math runs in fp32; `black` + `ruff`; snake_case.
-- The ported TimeSformer is CC-NC 4.0, research-only — deployment paths use
-  the ResNet control.
-- Datasets and kernels are public; the dataset stays CC-BY-4.0.
 
 ## Data
 
-XJTU-DV-Beam only (`XJTU-DV-Beam.zip`, ~1.6 GB, Zenodo record 17447083).
-Rotor/Pump subsets are out of scope. Reference loaders are bundled in the
-archive under `Code/`.
+Vibration data from the XJTU-DV open-source dataset (Xi'an Jiaotong
+University), via Zenodo record 17447083.

@@ -5,6 +5,7 @@ help: ## show targets
 	@grep -E '^[a-z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-12s %s\n", $$1, $$2}'
 
 setup: ## installs all dependencies (uv sync)
+	command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 	uv sync --group dev
 
 download: ## fetches XJTU-DV-Beam.zip, verifies md5, prints inventory
