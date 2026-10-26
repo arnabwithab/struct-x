@@ -15,8 +15,99 @@ temporal pos-embed linearly interp to B (re-interp per B in 5-9 ablation).
 import torch
 import torch.nn as nn
 
-KINETICS_URL = "https://github.com/facebookresearch/TimeSformer/releases/download/v1/divided_space_time_8x32_224_K400.pyth"
-KINETICS_SHA256 = "UNPINNED"  # pin real SHA at first successful fetch (F003)
+KINETICS_URL = (
+    "https://huggingface.co/facebook/timesformer-base-finetuned-k400/resolve/main/pytorch_model.bin"
+)
+KINETICS_SHA256 = (
+    "bdb264469ffc423fb86c78932268a290bfbd69bd768b7ce8595c047a2dc54089"  # pinned 2026-10-26 (F011)
+)
+
+
+def _mha_from_qkv(
+    mha: nn.MultiheadAttention,
+    qkv_w: torch.Tensor,
+    qkv_b: torch.Tensor,
+    out_w: torch.Tensor,
+    out_b: torch.Tensor,
+) -> None:
+    """Copy a fused QKV + output projection into torch MultiheadAttention."""
+    with torch.no_grad():
+        mha.in_proj_weight.copy_(qkv_w)
+        mha.in_proj_bias.copy_(qkv_b)
+        mha.out_proj.weight.copy_(out_w)
+        mha.out_proj.bias.copy_(out_b)
+
+
+def load_hf_timesformer(model: "TimeSformerEncoder", hf_state: dict, n_bins: int = 5) -> None:
+    """Load facebook/timesformer-base-finetuned-k400 weights into the port.
+
+    Surgery: patch stem 3->2 channels by mean inflation; temporal pos-embed
+    linearly interpolated 8->B frames. Temporal dense + separate space/time QKV
+    match the HF divided_space_time block layout 1:1. Accepts the full
+    ForVideoClassification checkpoint (strips the `timesformer.` prefix,
+    ignores the classifier head -- replaced by our heads).
+    """
+    state = {
+        k[len("timesformer.") :]: v
+        for k, v in hf_state.items()
+        if k.startswith("timesformer.") and not k.startswith("timesformer.classifier")
+    }
+    hf_state = state if state else hf_state
+    with torch.no_grad():
+        stem = hf_state["embeddings.patch_embeddings.projection.weight"]  # (D,3,16,16)
+        model.patch_embed.weight.copy_(
+            stem.mean(dim=1, keepdim=True).unsqueeze(2).expand(-1, 2, -1, -1, -1).contiguous()
+        )
+        model.patch_embed.bias.copy_(hf_state["embeddings.patch_embeddings.projection.bias"])
+        pos = hf_state["embeddings.position_embeddings"]  # (1, P+1): [CLS, patches]
+        model.cls.copy_(hf_state["embeddings.cls_token"] + pos[:, :1, :])
+        model.space_pos.copy_(pos[:, 1:, :])
+        time_emb = hf_state["embeddings.time_embeddings"]  # (1,8,D) -> (1,B,D)
+        if time_emb.shape[1] != n_bins:
+            time_emb = (
+                nn.functional.interpolate(
+                    time_emb.transpose(1, 2).unsqueeze(-1),
+                    size=(n_bins, 1),
+                    mode="bilinear",
+                    align_corners=False,
+                )
+                .squeeze(-1)
+                .transpose(1, 2)
+            )
+        model.time_pos.copy_(time_emb)
+        for i, blk in enumerate(model.blocks):
+            p = f"encoder.layer.{i}."
+            h = hf_state
+            _mha_from_qkv(
+                blk.t_attn,
+                h[p + "temporal_attention.attention.qkv.weight"],
+                h[p + "temporal_attention.attention.qkv.bias"],
+                h[p + "temporal_attention.output.dense.weight"],
+                h[p + "temporal_attention.output.dense.bias"],
+            )
+            blk.t_dense.weight.copy_(h[p + "temporal_dense.weight"])
+            blk.t_dense.bias.copy_(h[p + "temporal_dense.bias"])
+            blk.n1.weight.copy_(h[p + "temporal_layernorm.weight"])
+            blk.n1.bias.copy_(h[p + "temporal_layernorm.bias"])
+            _mha_from_qkv(
+                blk.s_attn,
+                h[p + "attention.attention.qkv.weight"],
+                h[p + "attention.attention.qkv.bias"],
+                h[p + "attention.output.dense.weight"],
+                h[p + "attention.output.dense.bias"],
+            )
+            blk.n2.weight.copy_(h[p + "layernorm_before.weight"])
+            blk.n2.bias.copy_(h[p + "layernorm_before.bias"])
+            blk.mlp[0].weight.copy_(h[p + "intermediate.dense.weight"])
+            blk.mlp[0].bias.copy_(h[p + "intermediate.dense.bias"])
+            blk.mlp[2].weight.copy_(h[p + "output.dense.weight"])
+            blk.mlp[2].bias.copy_(h[p + "output.dense.bias"])
+            blk.n3.weight.copy_(h[p + "layernorm_after.weight"])
+            blk.n3.bias.copy_(h[p + "layernorm_after.bias"])
+            blk.num_frames = n_bins
+        model.norm.weight.copy_(hf_state["layernorm.weight"])
+        model.norm.bias.copy_(hf_state["layernorm.bias"])
+        model.num_frames = n_bins
 
 
 class DividedBlock(nn.Module):
@@ -25,6 +116,7 @@ class DividedBlock(nn.Module):
     def __init__(self, dim: int, heads: int, mlp_ratio: float = 4.0):
         super().__init__()
         self.t_attn = nn.MultiheadAttention(dim, heads, batch_first=True)
+        self.t_dense = nn.Linear(dim, dim)  # HF temporal branch projection
         self.s_attn = nn.MultiheadAttention(dim, heads, batch_first=True)
         self.n1 = nn.LayerNorm(dim)
         self.n2 = nn.LayerNorm(dim)
@@ -41,7 +133,7 @@ class DividedBlock(nn.Module):
         # temporal: (N*P, T, D)
         p = tp // t
         h = tok.reshape(n, t, p, d).permute(0, 2, 1, 3).reshape(n * p, t, d)
-        h = h + self.t_attn(self.n1(h), self.n1(h), self.n1(h))[0]
+        h = h + self.t_dense(self.t_attn(self.n1(h), self.n1(h), self.n1(h))[0])
         tok = h.reshape(n, p, t, d).permute(0, 2, 1, 3).reshape(n, tp, d)
         # spatial: (N*T, P, D); CLS passes through (averaged back later)
         s = tok.reshape(n, t, p, d).reshape(n * t, p, d)
@@ -131,21 +223,19 @@ class TimeSformerEncoder(nn.Module):
         return self.head(self.norm(x[:, 0]))
 
     def load_kinetics_weights(self, url: str = KINETICS_URL, sha256: str = KINETICS_SHA256) -> None:
-        """Fetch Kinetics zoo weights, verify SHA, inflate 3->2ch stem. ResNet fallback if 404."""
+        """Fetch facebook/timesformer-base-finetuned-k400, verify SHA, map into the port.
+
+        Surgery: patch stem 3->2 channels by mean inflation; temporal pos-embed
+        linearly interpolated 8->B frames. ResNet fallback if weights 404.
+        """
         import hashlib
         import io
         import urllib.request
 
         if sha256 == "UNPINNED":
-            raise RuntimeError("Kinetics SHA unpinned; pin URL+SHA at first fetch (F003).")
+            raise RuntimeError("Kinetics SHA unpinned; pin URL+SHA at first fetch (F011).")
         buf = urllib.request.urlopen(url).read()
         if hashlib.sha256(buf).hexdigest() != sha256:
             raise ValueError("Kinetics weights SHA mismatch.")
         state = torch.load(io.BytesIO(buf), map_location="cpu")
-        own = self.state_dict()
-        for k, v in state.items():
-            if k not in own or own[k].shape != v.shape:
-                continue
-            if k == "patch_embed.weight" and v.shape[1] == 3 and own[k].shape[1] == 2:
-                v = v.mean(dim=1, keepdim=True).expand(-1, 2, -1, -1, -1)
-            own[k].copy_(v)
+        load_hf_timesformer(self, state, n_bins=self.num_frames)
