@@ -57,7 +57,7 @@ src/
 configs/base.yaml               # B, λp, λs, lr, micro/eff batch, splits, seeds
 scripts/                        # download.sh, preprocess.py, run_folds.sh
 tests/                          # mirrors src structure, one test module per module
-kernel/, beam-dataset/  # Kaggle kernel/dataset dirs (both PUBLIC)
+kernel/, data/  # Kaggle kernel/dataset dirs (both PUBLIC)
 ```
 
 ## Rules that matter

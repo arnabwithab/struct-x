@@ -63,7 +63,7 @@ def trial_metrics(model, windows, f_target, device="cpu"):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--archive", default="beam-dataset/XJTU-DV-Beam")
+    ap.add_argument("--archive", default="data/XJTU-DV-Beam")
     ap.add_argument("--ckpts", default="outputs")
     ap.add_argument("--out", default="results/final_verdict.json")
     ap.add_argument("--folds", default="", help="comma-separated held conditions, empty = all")

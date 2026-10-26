@@ -9,7 +9,7 @@ from data_loader import condition_of, pair_trials, trial_to_training_pairs
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--archive", default="beam-dataset/XJTU-DV-Beam")
+    parser.add_argument("--archive", default="data/XJTU-DV-Beam")
     parser.add_argument("--out", default="data/voxels")
     parser.add_argument("--trials", default="", help="comma-separated trial ids, empty = all")
     parser.add_argument("--bins", type=int, default=5)

@@ -81,7 +81,7 @@ struct-x/
 │   ├── design.md                # SOLE source of truth
 │   └── features.json            # canonical feature tracker — always up to date
 ├── kernel-structx/              # Kaggle kernel dir (kernel-metadata.json, PUBLIC)
-├── beam-dataset/                # Kaggle dataset dir (dataset-metadata.json, PUBLIC, CC-BY-4.0)
+├── data/                # Kaggle dataset dir (dataset-metadata.json, PUBLIC, CC-BY-4.0)
 ├── Makefile
 ├── README.md
 └── AGENTS.md
