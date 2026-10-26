@@ -29,15 +29,20 @@ could be load-bearing. `m,c,k` stable across folds (fd 6.7–6.9 Hz, k≈1800).
 
 | Pair | ms/window/step | Overhead |
 |------|----------------|----------|
-| (a) data-only vs (c) +SDOF | TBD | TBD |
-| (b) +smooth vs (d) both | TBD | TBD |
+| (a) data-only 122.0 vs (c) +SDOF 113.9 | — | −6.7% (noise) |
+| (b) +smooth 116.8 vs (d) both 119.7 | — | +2.6% (noise) |
 
-- FLOP prior: `~6T` multiply-adds/window vs `~1e10` encoder (measurement wins).
-- Savings in convergence: epochs-to-target per variant in
-  `outputs/results_*.json` (`epochs_to_target`/`epochs_run`); GPU-hours per
-  fold ≈ prop. to epochs × steps/epoch × ms/step (quota log: v5+v6 burns).
-- Accuracy price: matched-harm column above.
-- **Verdict line:** TBD after timing kernel lands.
+- FLOP prior: `~6T` multiply-adds/window vs `~1e10` encoder — measurement agrees:
+  **no measurable per-step cost** (run-to-run variance dominates; (c) < (a)).
+- Savings in convergence (epochs-to-target / epochs-run): physics reaches target
+  in fewer epochs on most folds — e.g. On_set2 data 39/49 vs sdof 5/16;
+  Off_set3 data 1/12 vs sdof 1/11; exceptions (Off_set2 both 2/50) show no
+  systematic GPU-hour saving. Campaign ≈ 12 h GPU across v5–v7 runs.
+- Accuracy price: matched-harm column in sec 1 (+0.1 to +0.5 on 5/6 folds).
+- **Verdict line:** "Physics cost ~0% per step, saved no consistent GPU-hours
+  (faster target on 4/6 folds, full-budget runs on 2/6), moved matched RMSE by
+  +0.1 to +0.5 on 5/6 folds — regularisation benefit with no compute saving
+  and no robustness gain" (consistent with the O5 non-identifiable outcome).
 
 ## 3. 15b event-camera usage survey (use → trick → our sec)
 

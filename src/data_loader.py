@@ -273,7 +273,9 @@ def build_trial_windows(
     return [s for s in window_starts(usable, window_s, stride_s, exclusion_s)]
 
 
-def trial_to_training_pairs(dv_path, ldv_path, n_bins=5, ldv_stats=None, vox_stats=None, standardize_q=True):
+def trial_to_training_pairs(
+    dv_path, ldv_path, n_bins=5, ldv_stats=None, vox_stats=None, standardize_q=True
+):
     """One trial -> [(voxel (2B,H,W) ROI-cropped, q (1000,))], trigger-anchored.
 
     Stats args are (mean, std); when None, per-trial stats are used — dev-only,
