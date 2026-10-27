@@ -35,19 +35,25 @@ def log(msg):
 
 
 def ensure_zip(data_root):
+    import subprocess
+
     path = os.path.join(data_root, "XJTU-DV-Beam.zip")
-    if os.path.isfile(path):
-        h = hashlib.md5()
-        with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(1 << 20), b""):
-                h.update(chunk)
-        if h.hexdigest() == EXPECTED_MD5:
-            log("zip OK (cached)")
-            return path
-        log("zip md5 mismatch, re-downloading")
-    log("downloading beam zip (~1.6 GB)...")
-    urllib.request.urlretrieve(ZENODO_URL, path)
-    return path
+    for attempt in range(5):
+        if os.path.isfile(path):
+            h = hashlib.md5()
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 20), b""):
+                    h.update(chunk)
+            if h.hexdigest() == EXPECTED_MD5:
+                log("zip OK (cached)")
+                return path
+            log(f"zip md5 mismatch, resuming (attempt {attempt + 1})")
+        else:
+            log(f"downloading beam zip (~1.6 GB, attempt {attempt + 1})...")
+        r = subprocess.run(["curl", "-C", "-", "-L", "-o", path, ZENODO_URL])
+        if r.returncode != 0:
+            log("curl failed, retrying...")
+    raise RuntimeError("beam zip download failed after retries")
 
 
 def decode_all(archive_dir, cache_dir, pairs):
