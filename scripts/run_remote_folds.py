@@ -84,7 +84,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-root", required=True)
     ap.add_argument("--folds", default="On_set2,Off_set3")
-    ap.add_argument("--micro", type=int, default=8)
+    ap.add_argument("--micro", type=int, default=4)  # shared 24GB card: 4 fits alongside other jobs
     args = ap.parse_args()
     folds_wanted = args.folds.split(",")
     device = "cuda" if torch.cuda.is_available() else "cpu"
