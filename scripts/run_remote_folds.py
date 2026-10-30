@@ -84,7 +84,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-root", required=True)
     ap.add_argument("--folds", default="On_set2,Off_set3")
-    ap.add_argument("--micro", type=int, default=4)  # shared 24GB card: 4 fits alongside other jobs
+    ap.add_argument("--micro", type=int, default=16)  # OOM ladder below finds what fits
     args = ap.parse_args()
     folds_wanted = args.folds.split(",")
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -133,13 +133,18 @@ def main() -> None:
         return WaveformFrequencyModel(enc, 768)
 
     micro = args.micro
-    try:
-        with torch.no_grad():
-            make_model().to(device)(torch.randn(micro, 2, 5, 224, 224, device=device))
-        torch.cuda.empty_cache()
-    except RuntimeError:
-        micro = 4
-        torch.cuda.empty_cache()
+    for trial_micro in [args.micro, 8, 4]:
+        try:
+            with torch.no_grad():
+                probe = make_model().to(device)
+                probe(torch.randn(trial_micro, 2, 5, 224, 224, device=device))
+                del probe
+            micro = trial_micro
+            break
+        except RuntimeError:
+            torch.cuda.empty_cache()
+            continue
+    torch.cuda.empty_cache()
     log(f"micro_batch: {micro}")
 
     conditions = {t: condition_of(t) for t, _, _ in pairs}
