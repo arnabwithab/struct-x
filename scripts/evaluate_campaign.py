@@ -65,6 +65,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--archive", default="data/XJTU-DV-Beam")
     ap.add_argument("--ckpts", default="outputs")
+    ap.add_argument("--encoder", default="resnet", choices=["resnet", "timesformer"])
+    ap.add_argument(
+        "--remote-ckpts",
+        default="",
+        help="dir with {held}/{variant}.pt layout (e.g. downloaded remote ckpts)",
+    )
     ap.add_argument("--out", default="results/final_verdict.json")
     ap.add_argument("--folds", default="", help="comma-separated held conditions, empty = all")
     args = ap.parse_args()
@@ -103,17 +109,25 @@ def main() -> None:
         fold_res = {"mck_trial": None, "variants": {}}
         for variant in VARIANTS:
             ckpt = None
-            for root in [
+            roots = [
                 os.path.join(args.ckpts, "v6", "ckpts", held),
                 os.path.join(args.ckpts, "v7", "ckpts", held),
-            ]:
+            ]
+            if args.remote_ckpts:
+                roots.insert(0, os.path.join(args.remote_ckpts, held))
+            for root in roots:
                 cand = os.path.join(root, f"{variant}.pt")
                 if os.path.isfile(cand):
                     ckpt = cand
             if ckpt is None:
                 print(f"SKIP {held}/{variant}: no ckpt", flush=True)
                 continue
-            model = WaveformFrequencyModel(ResNet3DEncoder(512), 512)
+            if args.encoder == "timesformer":
+                from models.timesformer import TimeSformerEncoder
+
+                model = WaveformFrequencyModel(TimeSformerEncoder(num_frames=5), 768)
+            else:
+                model = WaveformFrequencyModel(ResNet3DEncoder(512), 512)
             model.load_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
             tm = trial_metrics(
                 model, norm([w for t in fold["test_matched"] for w in raw[t]]), trial_f
