@@ -135,10 +135,16 @@ def main() -> None:
     micro = args.micro
     for trial_micro in [args.micro, 8, 4]:
         try:
-            with torch.no_grad():
-                probe = make_model().to(device)
-                probe(torch.randn(trial_micro, 2, 5, 224, 224, device=device))
-                del probe
+            probe = make_model().to(device)
+            opt = torch.optim.Adam(probe.parameters(), lr=2e-4)
+            with torch.enable_grad():
+                v = torch.randn(trial_micro, 2, 5, 224, 224, device=device)
+                qh, fh = probe(v)
+                loss = qh.sum() + fh.sum()
+                opt.zero_grad()
+                loss.backward()
+                opt.step()
+            del probe, opt
             micro = trial_micro
             break
         except RuntimeError:
