@@ -234,9 +234,9 @@ def main() -> None:
                             rms.append(rmse(q[i].numpy(), qh[i]))
                             fr.append(rel_freq_error(float(fh[i].cpu()), float(f[i])))
                 metrics[f"{variant}/{split}"] = {"rmse": rms, "freq": fr}
-                tm = metrics[f"{variant}/test_matched"]["rmse"]
-                tsm = metrics[f"{variant}/test_shift"]["rmse"]
-                log(f"{held}/{variant}: Delta_RMSE(test)={np.mean(tsm) - np.mean(tm):+.4f}")
+            tm = metrics[f"{variant}/test_matched"]["rmse"]
+            tsm = metrics[f"{variant}/test_shift"]["rmse"]
+            log(f"{held}/{variant}: Delta_RMSE(test)={np.mean(tsm) - np.mean(tm):+.4f}")
         json.dump(
             {
                 "held": held,
