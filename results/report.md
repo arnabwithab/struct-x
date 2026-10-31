@@ -130,8 +130,14 @@ fold. No robustness gain either.
 0.43 (On_set3-control) against σ=0.06 — and in the wrong direction. The
 physics term does not clear trial-to-trial noise anywhere.
 
-**RQ4: false in 6 of 7 folds** (only On_set2-pretrained shows freq degrading
-less). **Matched harm: +0.1 to +0.7 RMSE on most folds** — physics costs
+**RQ4 (corrected): |Δfreq| < |Δrmse| holds on all 6 control folds — but both
+deltas are usually negative (shift tests *easier* than matched), so "degrades
+less" is ill-posed here. The stored `rq4` flags used a raw `<` comparison
+that returns the wrong answer on negative Deltas (a real bug, now fixed to
+`rq4_abs` in the verdict JSONs); the honest finding is that RQ4 cannot be
+meaningfully tested until the matched upper bound is stable. Pretrained
+On_set2 is the only clean positive.** Matched harm: +0.1 to +0.7 RMSE on most
+folds — physics costs
 matched accuracy while buying no stability. The honest summary: a
 regularisation signal with no measurable robustness gain and a consistent
 matched-accuracy price.

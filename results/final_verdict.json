@@ -215,7 +215,8 @@
     "harm": 0.4383611859733558,
     "harmed": true,
     "statement": "physics harms matched performance by 0.4384 (reported separately)"
-   }
+   },
+   "rq4_abs": true
   },
   "Off_set2": {
    "mck_trial": "Off_set1_trail2",
@@ -432,7 +433,8 @@
     "harm": 0.10759635851271154,
     "harmed": true,
     "statement": "physics harms matched performance by 0.1076 (reported separately)"
-   }
+   },
+   "rq4_abs": true
   },
   "Off_set3": {
    "mck_trial": "Off_set1_trail1",
@@ -649,7 +651,8 @@
     "harm": 0.26434147561724547,
     "harmed": true,
     "statement": "physics harms matched performance by 0.2643 (reported separately)"
-   }
+   },
+   "rq4_abs": true
   },
   "On_set1": {
    "mck_trial": "Off_set1_trail1",
@@ -866,7 +869,8 @@
     "harm": 0.41173955369079307,
     "harmed": true,
     "statement": "physics harms matched performance by 0.4117 (reported separately)"
-   }
+   },
+   "rq4_abs": true
   },
   "On_set2": {
    "mck_trial": "Off_set1_trail1",
@@ -1083,7 +1087,8 @@
     "harm": 0.4746836970756192,
     "harmed": true,
     "statement": "physics harms matched performance by 0.4747 (reported separately)"
-   }
+   },
+   "rq4_abs": true
   },
   "On_set3": {
    "mck_trial": "Off_set1_trail1",
@@ -1300,7 +1305,8 @@
     "harm": -0.10748394617292184,
     "harmed": false,
     "statement": "no matched degradation (harm=-0.1075)"
-   }
+   },
+   "rq4_abs": true
   }
  }
 }
