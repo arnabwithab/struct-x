@@ -21,10 +21,12 @@ from data_loader import (
     make_loco_splits,
     pair_trials,
     parse_ldv_txt,
+    pick_mck_fit_trial,
     trial_to_training_pairs,
 )
 from evaluate import (
     delta_m,
+    delta_r,
     matched_degradation_report,
     rel_freq_error,
     rmse,
@@ -39,24 +41,47 @@ from voxel import voxel_to_model_input
 VARIANTS = ["data_only", "smoothness_only", "sdof_only", "both"]
 
 
-def trial_metrics(model, windows, f_target, device="cpu"):
-    """Per-trial (rmse, freq_err) means over that trial's windows.
+def trial_metrics(model, windows, f_target, mck, device="cpu", batch=64):
+    """Per-trial means over that trial's windows: rmse, mae, pearson r, freq err, L_phys.
 
     windows: (trial_id, model-ready (2,5,224,224), q (1000,)) already normalized.
+    mck: dict with m, c, k for the self-consistency L_phys.
+    Forwards run batched on `device`; metrics per window after.
     """
-    model.eval()
-    per_trial = {}
+    from evaluate import l_phys, mae, pearson_r
+
+    model.eval().to(device)
+    qhs, fhs, order = [], [], []
     with torch.no_grad():
-        for trial_id, v, q in windows:
-            x = torch.from_numpy(np.ascontiguousarray(v)).unsqueeze(0).to(device)
-            qh, fh = model(x)
-            qh = qh.cpu().numpy().ravel()
-            per_trial.setdefault(trial_id, []).append(
-                (rmse(q, qh), rel_freq_error(float(fh.cpu()), f_target[trial_id]))
+        for i in range(0, len(windows), batch):
+            chunk = windows[i : i + batch]
+            x = torch.stack([torch.from_numpy(np.ascontiguousarray(w[1])) for w in chunk]).to(
+                device
             )
+            qh, fh = model(x.float())
+            qhs.append(qh.cpu().float())
+            fhs.append(fh.cpu().float())
+            order.extend(w[0] for w in chunk)
+    qhs = torch.cat(qhs).numpy()
+    fhs = torch.cat(fhs).numpy().ravel()
+    per_trial = {}
+    for (t, _, q), qh, fh in zip(
+        windows, [qhs[i] for i in range(len(windows))], [fhs[i] for i in range(len(windows))]
+    ):
+        lp = float(
+            l_phys(
+                torch.from_numpy(np.ascontiguousarray(qh)).unsqueeze(0),
+                mck["m"],
+                mck["c"],
+                mck["k"],
+            )
+        )
+        per_trial.setdefault(t, []).append(
+            (rmse(q, qh), mae(q, qh), pearson_r(q, qh), rel_freq_error(float(fh), f_target[t]), lp)
+        )
     return {
-        t: (float(np.mean([r for r, _ in v])), float(np.mean([f for _, f in v])))
-        for t, v in per_trial.items()
+        t: tuple(float(np.mean([m[i] for m in vv])) for i in range(5))
+        for t, vv in per_trial.items()
     }
 
 
@@ -72,7 +97,10 @@ def main() -> None:
     )
     ap.add_argument("--out", default="results/final_verdict.json")
     ap.add_argument("--folds", default="", help="comma-separated held conditions, empty = all")
+    ap.add_argument("--device", default=None, help="cuda/cpu; default auto")
+    ap.add_argument("--batch", type=int, default=64, help="eval forward batch size")
     args = ap.parse_args()
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     want = set(args.folds.split(",")) if args.folds else None
 
     pairs = pair_trials(os.path.join(args.archive, "DV"), os.path.join(args.archive, "LDV"))
@@ -106,6 +134,7 @@ def main() -> None:
             return out
 
         fold_res = {"mck_trial": None, "variants": {}}
+        ldv_by_id = {t: p for t, _, p in pairs}
         for variant in VARIANTS:
             ckpt = None
             roots = [
@@ -130,24 +159,64 @@ def main() -> None:
 
                 model = WaveformFrequencyModel(ResNet3DEncoder(512), 512)
             model.load_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
+            import time as _time
+
+            model.eval()
+            _sample = torch.randn(1, 2, 5, 224, 224).to(device)
+            with torch.no_grad():
+                model(_sample)
+                _t0 = _time.perf_counter()
+                for _ in range(20):
+                    model(_sample)
+                if device == "cuda":
+                    torch.cuda.synchronize()
+                _ms = (_time.perf_counter() - _t0) / 20 * 1000
+            fold_res.setdefault("latency_ms_per_window", {})[variant] = round(float(_ms), 2)
+            mck_trial = pick_mck_fit_trial(fold["train"])
+            t_mck, v_mck = parse_ldv_txt(ldv_by_id[mck_trial])
+            mck = fit_mck(v_mck, 1.0 / float(np.median(np.diff(t_mck))))
+            fold_res["mck_trial"] = mck_trial
             tm = trial_metrics(
-                model, norm([w for t in fold["test_matched"] for w in raw[t]]), trial_f
+                model,
+                norm([w for t in fold["test_matched"] for w in raw[t]]),
+                trial_f,
+                mck,
+                device=device,
+                batch=args.batch,
             )
             ts = trial_metrics(
-                model, norm([w for t in fold["test_shift"] for w in raw[t]]), trial_f
+                model,
+                norm([w for t in fold["test_shift"] for w in raw[t]]),
+                trial_f,
+                mck,
+                device=device,
+                batch=args.batch,
             )
             m_r = [tm[t][0] for t in sorted(tm)]
             s_r = [ts[t][0] for t in sorted(ts)]
-            m_f = [tm[t][1] for t in sorted(tm)]
-            s_f = [ts[t][1] for t in sorted(ts)]
+            m_f = [tm[t][3] for t in sorted(tm)]
+            s_f = [ts[t][3] for t in sorted(ts)]
+            m_a = [tm[t][1] for t in sorted(tm)]
+            s_a = [ts[t][1] for t in sorted(ts)]
+            m_p = [tm[t][2] for t in sorted(tm)]
+            s_p = [ts[t][2] for t in sorted(ts)]
+            m_l = [tm[t][4] for t in sorted(tm)]
+            s_l = [ts[t][4] for t in sorted(ts)]
             fold_res["variants"][variant] = {
                 "rmse_matched": summarize_trials(m_r),
                 "rmse_shift": summarize_trials(s_r),
                 "freq_matched": summarize_trials(m_f),
                 "freq_shift": summarize_trials(s_f),
+                "mae_matched": summarize_trials(m_a),
+                "mae_shift": summarize_trials(s_a),
+                "pearson_matched": summarize_trials(m_p),
+                "pearson_shift": summarize_trials(s_p),
+                "lphys_matched": summarize_trials(m_l),
+                "lphys_shift": summarize_trials(s_l),
                 "delta_rmse": delta_m(m_r, s_r),
                 "se_rmse": se_delta(m_r, s_r),
                 "delta_freq": delta_m(m_f, s_f),
+                "delta_pearson_r": delta_r(m_p, s_p),
                 "n_matched": len(m_r),
                 "n_shift": len(s_r),
             }
