@@ -175,9 +175,8 @@ with no compute saving and no robustness gain.
 
 ## 9. Gaps and what remains
 
-- B=5–9 ablation never run (B=5 everywhere); time-surface fallback never
-  built; MAE / Pearson r / L_phys-as-metric / inference latency never
-  recorded (only RMSE + freq error); AMP never enabled.
+- B=5–9 ablation never run (B=5 everywhere); time-surface fallback built but
+  never compared head-to-head; AMP code ready but never run for comparison.
 - Pretrained comparison covers 3 of 6 folds (quota; conclusion stable).
 - Test sets of 5 trials are too small to bound Δ — the single biggest
   methodological weakness; more trials (or more conditions) is the fix.
