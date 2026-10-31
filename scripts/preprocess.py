@@ -13,6 +13,7 @@ def main() -> None:
     parser.add_argument("--out", default="data/voxels")
     parser.add_argument("--trials", default="", help="comma-separated trial ids, empty = all")
     parser.add_argument("--bins", type=int, default=5)
+    parser.add_argument("--repr", choices=["voxel", "timesurface"], default="voxel")
     args = parser.parse_args()
 
     pairs = pair_trials(os.path.join(args.archive, "DV"), os.path.join(args.archive, "LDV"))
@@ -28,7 +29,7 @@ def main() -> None:
         else:
             import numpy as np
 
-            win = trial_to_training_pairs(dv_path, ldv_path, n_bins=args.bins)
+            win = trial_to_training_pairs(dv_path, ldv_path, n_bins=args.bins, repr_kind=args.repr)
             vox = np.stack([w[0] for w in win]).astype(np.float32)
             q = np.stack([w[1] for w in win]).astype(np.float32)
             np.savez_compressed(out_path, vox=vox, q=q)

@@ -25,12 +25,12 @@ NEEDS_BEAM = pytest.mark.skipif(
 )
 
 
-def write_mini_dat(path, n=200, height=32, width=48):
+def write_mini_dat(path, n=200, height=32, width=48, dt_us=10, t0_us=1000):
     header = f"% Height {height}\n% Width {width}\n% end\n".encode("latin-1")
     meta = np.array([0, 8], dtype=np.uint8)
     rng = np.random.RandomState(0)
     rec = np.empty(n, dtype=[("t", "<u4"), ("_", "<i4")])
-    rec["t"] = (1000 + 10 * np.arange(n)).astype(np.uint32)
+    rec["t"] = (t0_us + dt_us * np.arange(n)).astype(np.uint32)
     rec["_"] = (
         rng.randint(0, width, n) | (rng.randint(0, height, n) << 14) | (rng.randint(0, 2, n) << 28)
     ).astype(np.int32)
@@ -38,6 +38,27 @@ def write_mini_dat(path, n=200, height=32, width=48):
         f.write(header)
         f.write(meta.tobytes())
         rec.tofile(f)
+
+
+def write_synth_ldv(path, seconds=8.0, fs=256.0, impact_at=0.6):
+    t = np.arange(int(seconds * fs)) / fs
+    v = 0.01 * np.random.RandomState(1).randn(t.size)
+    v += 2.0 * np.exp(-3.0 * np.maximum(0, t - impact_at)) * np.cos(2 * np.pi * 6.75 * t)
+    with open(path, "w") as f:
+        f.write("Source File: synth\nSignal: Time - Vib Velocity\n\nTime [s]\tVel [m/s]\n")
+        for ti, vi in zip(t, v):
+            f.write(f"{ti}\t{vi}\n")
+
+
+def test_repr_flag_switches_output_shape(tmp_path):
+    dv = tmp_path / "trial.dat"
+    ldv = tmp_path / "trial.txt"
+    write_mini_dat(str(dv), n=20000, height=64, width=64, dt_us=150)
+    write_synth_ldv(str(ldv))
+    vox, q = trial_to_training_pairs(str(dv), str(ldv), n_bins=5)[0]
+    assert vox.shape[0] == 10 and q.shape == (1000,)
+    ts, _ = trial_to_training_pairs(str(dv), str(ldv), n_bins=5, repr_kind="timesurface")[0]
+    assert ts.shape == (2, vox.shape[1], vox.shape[2])
 
 
 def test_pair_trials_handles_trai4_typo(tmp_path):

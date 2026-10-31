@@ -141,11 +141,14 @@ def _train_single_config(
     seed=0,
     device="cpu",
     ckpt_path=None,  # accepted for call symmetry; saving is run_fold's job
+    use_amp=False,
 ):
     """Train one (lp, ls) config; return best-val-Delta run summary + state."""
     seed_everything(seed)
     model.to(device)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
+    device_type = "cuda" if str(device).startswith("cuda") else "cpu"
+    scaler = torch.amp.GradScaler(device_type) if use_amp else None
     base_lp, r_hist, val_hist = lambda_p, [], []
     best_state, best_delta = None, math.inf
     for epoch in range(max_epochs):
@@ -155,16 +158,34 @@ def _train_single_config(
         pending = 0
         for v, q, f in train_batches:
             v, q, f = v.to(device), q.to(device), f.to(device)
-            q_hat, f_hat = model(v)
-            loss = physics.total_loss(q_hat, q, f_hat, f, m, c, k, lp_eff, lambda_s)
-            (loss / accum_steps).backward()
+            if not use_amp:
+                q_hat, f_hat = model(v)
+                loss = physics.total_loss(q_hat, q, f_hat, f, m, c, k, lp_eff, lambda_s)
+                (loss / accum_steps).backward()
+            else:
+                with torch.autocast(device_type=device_type, enabled=True):
+                    q_hat, f_hat = model(v)
+                    l_ldv = physics.ldv_loss(q_hat, q)
+                    l_smooth = physics.smoothness_loss(q_hat)
+                    l_freq = physics.frequency_loss(f_hat, f)
+                l_phys = physics.physics_loss(physics.as_fp32(q_hat), m, c, k)
+                loss = l_ldv + lp_eff * l_phys + lambda_s * l_smooth + physics.LAMBDA_F * l_freq
+                scaler.scale(loss / accum_steps).backward()
             pending += 1
             if pending % accum_steps == 0:
-                opt.step()
+                if scaler is None:
+                    opt.step()
+                else:
+                    scaler.step(opt)
+                    scaler.update()
                 opt.zero_grad()
                 pending = 0
         if pending:
-            opt.step()
+            if scaler is None:
+                opt.step()
+            else:
+                scaler.step(opt)
+                scaler.update()
             opt.zero_grad()
         v0, q0, _ = train_batches[0]
         r_hist.append(_grad_ratio(model, v0.to(device), q0.to(device), m, c, k))
@@ -205,6 +226,7 @@ def run_fold(
     seed=0,
     device="cpu",
     ckpt_path=None,
+    use_amp=False,
 ):
     """One LOCO fold x one O4 variant: grid-search, best-by-val-Delta_RMSE.
 
@@ -233,6 +255,7 @@ def run_fold(
             accum_steps=accum,
             seed=seed + i,  # distinct init per config, reproducible per seed
             device=device,
+            use_amp=use_amp,
         )
         if best is None or out["best_val_delta"] < best["best_val_delta"]:
             best, best_cfg = out, (lp, ls)

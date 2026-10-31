@@ -274,14 +274,23 @@ def build_trial_windows(
 
 
 def trial_to_training_pairs(
-    dv_path, ldv_path, n_bins=5, ldv_stats=None, vox_stats=None, standardize_q=True
+    dv_path,
+    ldv_path,
+    n_bins=5,
+    ldv_stats=None,
+    vox_stats=None,
+    standardize_q=True,
+    repr_kind="voxel",
 ):
-    """One trial -> [(voxel (2B,H,W) ROI-cropped, q (1000,))], trigger-anchored.
+    """One trial -> [(rep ROI-cropped, q (1000,))], trigger-anchored.
 
+    rep is a (2B,H,W) voxel grid, or a (2,H,W) time-surface when
+    repr_kind="timesurface" (flow-literature fallback for collapsed rates).
     Stats args are (mean, std); when None, per-trial stats are used — dev-only,
     training MUST pass frozen train stats. With standardize_q=False the raw
     resampled q is returned (unscaled) for fold-level frozen standardisation.
     """
+    from time_surface import events_to_timesurface
     from voxel import (
         events_to_voxel,
         find_roi,
@@ -316,17 +325,29 @@ def trial_to_training_pairs(
     for s in build_trial_windows(0.0, span_s, float(t_raw[-1]) - t_trig):
         t0w, t1w = int(te_trig + s * 1e6), int(te_trig + (s + WINDOW_S) * 1e6)
         in_win = (ts >= t0w) & (ts < t1w)
-        vox = events_to_voxel(
-            xs[in_win],
-            ys[in_win],
-            ts[in_win],
-            ps[in_win],
-            roi_h,
-            header["width"],
-            n_bins,
-            t0_us=t0w,
-            t1_us=t1w,
-        )
+        if repr_kind == "timesurface":
+            vox = events_to_timesurface(
+                xs[in_win],
+                ys[in_win],
+                ts[in_win],
+                ps[in_win],
+                roi_h,
+                header["width"],
+                t0_us=t0w,
+                t1_us=t1w,
+            )
+        else:
+            vox = events_to_voxel(
+                xs[in_win],
+                ys[in_win],
+                ts[in_win],
+                ps[in_win],
+                roi_h,
+                header["width"],
+                n_bins,
+                t0_us=t0w,
+                t1_us=t1w,
+            )
         i0 = int(round((t_trig + s - t0) * FS_TARGET))
         q = q_1k[i0 : i0 + int(WINDOW_S * FS_TARGET)]
         if len(q) != int(WINDOW_S * FS_TARGET):

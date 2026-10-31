@@ -23,9 +23,16 @@ LAMBDA_F = 0.1  # fixed, never tuned
 DT = 1e-3  # 1 ms at Fs = 1000 Hz
 
 
+def as_fp32(x):
+    """AMP carve-out: cast any floating tensor to float32, no-op otherwise."""
+    if torch.is_tensor(x) and torch.is_floating_point(x):
+        return x.to(dtype=torch.float32)
+    return x
+
+
 def first_derivative(q, dt=DT):
     """d/dt via 2nd-order central interior, 1st-order one-sided edges. fp32."""
-    q = q.to(dtype=torch.float32)
+    q = as_fp32(q)
     dt = float(dt)
     qd = torch.empty_like(q)
     qd[..., 1:-1] = (q[..., 2:] - q[..., :-2]) / (2.0 * dt)
@@ -36,7 +43,7 @@ def first_derivative(q, dt=DT):
 
 def second_derivative(q, dt=DT):
     """d2/dt2 via 2nd-order central interior, 1st-order one-sided edges. fp32."""
-    q = q.to(dtype=torch.float32)
+    q = as_fp32(q)
     dt = float(dt)
     qdd = torch.empty_like(q)
     qdd[..., 1:-1] = (q[..., 2:] - 2.0 * q[..., 1:-1] + q[..., :-2]) / dt**2
@@ -47,8 +54,8 @@ def second_derivative(q, dt=DT):
 
 def ldv_loss(q_hat, q):
     """mean_T ||q_hat - q||^2, then mean over batch."""
-    q_hat = q_hat.to(dtype=torch.float32)
-    q = q.to(dtype=torch.float32)
+    q_hat = as_fp32(q_hat)
+    q = as_fp32(q)
     return (q_hat - q).pow(2).mean(dim=-1).mean()
 
 
@@ -59,7 +66,7 @@ def smoothness_loss(q_hat, dt=DT):
 
 def physics_loss(q_hat, m, c, k, dt=DT, eps=EPS):
     """Normalised SDOF residual (G5 guard). Amplitude-blind; fp32 throughout."""
-    q_hat = q_hat.to(dtype=torch.float32)
+    q_hat = as_fp32(q_hat)
     m = torch.as_tensor(m, dtype=torch.float32)
     c = torch.as_tensor(c, dtype=torch.float32)
     k = torch.as_tensor(k, dtype=torch.float32)
@@ -70,8 +77,8 @@ def physics_loss(q_hat, m, c, k, dt=DT, eps=EPS):
 
 def frequency_loss(f_hat, f_target):
     """(f_hat - f_target)^2 / f_target^2, mean over batch."""
-    f_hat = f_hat.to(dtype=torch.float32)
-    f_target = f_target.to(dtype=torch.float32)
+    f_hat = as_fp32(f_hat)
+    f_target = as_fp32(f_target)
     return ((f_hat - f_target).pow(2) / f_target.pow(2)).mean()
 
 
