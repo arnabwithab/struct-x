@@ -101,8 +101,10 @@ under shift — the r > 0.9 target is missed by an order of magnitude; the
 models do not capture waveform shape.** MAE tracks RMSE. L_phys sits at
 1e11–1e12 (the 1/dt² amplification of noisy outputs) and is 10–100× smaller
 for physics-trained variants — the residual *is* being minimised, it just
-doesn't buy waveform fidelity. Inference latency 4–10 ms/window on the
-4500 Ada (load-dependent), comfortably under the 50 ms soft bar.
+doesn't buy waveform fidelity. Inference latency 4–10 ms/window for ResNet (load-dependent) and 42 ms/window
+for the TimeSformer-Base pretrained model, both on the 4500 Ada — comfortably
+under the 50 ms soft bar. (Per-variant, per-fold latencies in
+results/final_verdict*.json.)
 
 ![O5 forest](figs/o5_forest.png)
 
