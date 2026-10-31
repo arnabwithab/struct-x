@@ -44,6 +44,23 @@ could be load-bearing. `m,c,k` stable across folds (fd 6.7–6.9 Hz, k≈1800).
   +0.1 to +0.5 on 5/6 folds — regularisation benefit with no compute saving
   and no robustness gain" (consistent with the O5 non-identifiable outcome).
 
+## 4. F011 pretrained-TimeSformer result (2 folds, Kinetics init, 24 GB local GPU)
+
+| Fold | Variant | matched RMSE | test Delta | O5 |
+|------|---------|--------------|------------|----|
+| On_set2 | data_only | 0.621 | +2.183 ± 2.230 | R=+0.202 ≤ σ=3.014 → non-identifiable |
+| On_set2 | both | 1.358 | +1.984 ± 2.028 | harm +0.74, but freq error 0.9% vs 69% |
+| Off_set3 | data_only | 0.544 | −0.076 ± 0.082 | R=−0.002 ≤ σ=0.115 → non-identifiable |
+| Off_set3 | both | 0.625 | −0.075 ± 0.081 | harm +0.08; freq head collapsed (89% err) |
+
+Reading: Kinetics init converges in 1–5 epochs (vs 30+ from scratch) but lands
+in the same place — matched RMSE within noise of the ResNet control (0.62 vs
+0.52 on On_set2; 0.54 vs 0.37 on Off_set3). No robustness gain either: O5 stays
+non-identifiable. Notable split: on On_set2 the physics variant trades
+waveform for frequency (freq 0.9% vs 69% for data-only) at a +0.74 matched-RMSE
+cost — the exact trade sec 9 says to report, not net. Full 6-fold pretrained
+comparison not run (quota); pilot + these 2 folds already show init ≠ outcome.
+
 ## 3. 15b event-camera usage survey (use → trick → our sec)
 
 | Other use | Their trick | Struct-X decision |
