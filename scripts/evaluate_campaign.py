@@ -34,7 +34,6 @@ from evaluate import (
 )
 from mck_fit import fit_mck
 from models.heads import WaveformFrequencyModel
-from models.resnet3d import ResNet3DEncoder
 from voxel import voxel_to_model_input
 
 VARIANTS = ["data_only", "smoothness_only", "sdof_only", "both"]
@@ -127,6 +126,8 @@ def main() -> None:
 
                 model = WaveformFrequencyModel(TimeSformerEncoder(num_frames=5), 768)
             else:
+                from models.resnet3d import ResNet3DEncoder
+
                 model = WaveformFrequencyModel(ResNet3DEncoder(512), 512)
             model.load_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
             tm = trial_metrics(
