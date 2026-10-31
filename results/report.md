@@ -93,7 +93,16 @@ conservative deviation, no NaNs). Only best-per-fold checkpoints kept.
 | On_set2 | 0.52±0.10 | +2.23 | 1.05±0.25 | +1.94 | 0.99±0.21 | +1.98 |
 | On_set3 | 0.47±0.10 | −0.23 | 0.38±0.09 | +0.23 | 0.37±0.07 | +0.20 |
 
-(heads: matched = test-matched mean ± trial-std; Δ = shift − matched.)
+(heads: matched = test-matched mean ± trial-std; Δ = shift − matched.
+Full per-trial tables with se in results/final_verdict.json.)
+
+**Full metric set (new): Pearson r is +0.03…+0.19 matched and ≈0 or negative
+under shift — the r > 0.9 target is missed by an order of magnitude; the
+models do not capture waveform shape.** MAE tracks RMSE. L_phys sits at
+1e11–1e12 (the 1/dt² amplification of noisy outputs) and is 10–100× smaller
+for physics-trained variants — the residual *is* being minimised, it just
+doesn't buy waveform fidelity. Inference latency 4–10 ms/window on the
+4500 Ada (load-dependent), comfortably under the 50 ms soft bar.
 
 ![O5 forest](figs/o5_forest.png)
 
