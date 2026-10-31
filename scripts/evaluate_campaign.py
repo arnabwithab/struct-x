@@ -159,6 +159,7 @@ def main() -> None:
 
                 model = WaveformFrequencyModel(ResNet3DEncoder(512), 512)
             model.load_state_dict(torch.load(ckpt, map_location="cpu", weights_only=True))
+            model.to(device)
             import time as _time
 
             model.eval()
