@@ -34,8 +34,7 @@ def main():
         b, p = v["data_only"], v["both"]
         r = b["delta_rmse"] - p["delta_rmse"]
         s = float(np.hypot(b["se_rmse"], p["se_rmse"]))
-        ax.errorbar(r, i, xerr=s, fmt="o", capsize=4,
-                    label="R +/- sigma_R" if i == 0 else "")
+        ax.errorbar(r, i, xerr=s, fmt="o", capsize=4, label="R +/- sigma_R" if i == 0 else "")
     ax.axvline(0, color="k", lw=1)
     ax.set_yticks(range(len(FOLDS)))
     ax.set_yticklabels(FOLDS)
@@ -68,12 +67,14 @@ def main():
         cm, pm = [], []
         for h in pfolds:
             cm.append(ctrl[h]["variants"][var]["rmse_matched"]["mean"])
-            pm.append(pilot[var] if h == "On_set1"
-                      else pre[h]["variants"][var]["rmse_matched"]["mean"])
+            pm.append(
+                pilot[var] if h == "On_set1" else pre[h]["variants"][var]["rmse_matched"]["mean"]
+            )
         xi = [i + (j - 0.5) * 0.35 for i in range(3)]
         axes[0].bar(xi, cm, 0.35, label=f"control {var}")
-        axes[0].bar(xi, pm, 0.35, alpha=0.55, hatch="//" if j == 0 else "\\\\",
-                    label=f"pretrained {var}")
+        axes[0].bar(
+            xi, pm, 0.35, alpha=0.55, hatch="//" if j == 0 else "\\\\", label=f"pretrained {var}"
+        )
     axes[0].set_xticks(range(3))
     axes[0].set_xticklabels(pfolds)
     axes[0].set_ylabel("matched test RMSE")
