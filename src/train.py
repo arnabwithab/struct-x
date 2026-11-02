@@ -422,10 +422,6 @@ def main(argv=None):
     return out
 
 
-if __name__ == "__main__":
-    main()
-
-
 def run_fold(
     train_batches,
     val_matched_batches,
@@ -500,3 +496,7 @@ def run_loco(trial_conditions, build_fold_data, make_model, m, c, k, variant="bo
         tr, vm, vs = build_fold_data(held, splits[held])
         out[held] = run_fold(tr, vm, vs, make_model, m, c, k, variant=variant, seed=seed, **kw)
     return out
+
+
+if __name__ == "__main__":
+    main()

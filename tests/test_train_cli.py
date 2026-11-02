@@ -184,3 +184,14 @@ def test_preprocess_rejects_bad_b():
     mod = _load_preprocess()
     with pytest.raises(SystemExit):
         mod.build_arg_parser().parse_args(["--b", "4"])
+
+
+def test_main_guard_is_last():
+    # Regression: the __main__ guard once sat mid-file above run_fold,
+    # so `python -m train` died with NameError after full decode.
+    import pathlib
+
+    src = pathlib.Path("src/train.py").read_text()
+    guard = src.index('if __name__ == "__main__":')
+    last_def = src.rindex("\ndef ")
+    assert guard > last_def
