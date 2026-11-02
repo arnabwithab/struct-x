@@ -202,3 +202,32 @@ Seeds fixed (0); deterministic LOCO splits; `m,c,k`+fd/fn per fold in
 `outputs/results_*.json`; GPU type + micro/eff batch per run; Kinetics
 URL+SHA pinned in `src/models/timesformer.py`; Kaggle artefacts PUBLIC
 (CC-BY-4.0 data); code + tracker + this report at the pinned commit.
+
+### 10.1 Determinism: what is and is not guaranteed (F015-2)
+
+Seeded, so exact on a rerun with identical machine, libraries, and thread
+count: seed_everything pins stdlib, numpy, and torch RNGs (design sec 8);
+LOCO splits come from RandomState(seed); the m,c,k fit trial is the
+sorted-first train trial; train/voxel stats are frozen from train trials
+only. Same code plus same libs plus same OMP/MKL thread count on CPU
+reproduces losses and checkpoints bitwise (no data-loader workers; batch
+order is fixed).
+
+Not guaranteed bitwise: no use_deterministic_algorithms, no
+cudnn deterministic/benchmark pins, no CUBLAS_WORKSPACE_CONFIG, and TF32
+matmuls stay at the torch default. On CUDA, reduction/atomics ordering and
+autotuned kernels can move last-ulp bits run to run, and across GPU models or
+CUDA versions they certainly will; the AMP path (GradScaler) adds its own
+nondeterministic bits (the L_phys fp32 carve-out is exact only on the same
+architecture). PYTHONHASHSEED is unpinned, but every iteration order in the
+pipeline is explicitly sorted, so it cannot leak into results.
+
+Working rule: trust CPU reruns bitwise (fixed env), trust GPU reruns
+statistically (same Delta within se, same O5 verdict) but never bitwise. To
+get closer, set CUBLAS_WORKSPACE_CONFIG to colon-4096-colon-8, set cudnn
+deterministic True with benchmark False, and enable
+use_deterministic_algorithms -- some conv backward paths will throw under the
+last flag, which is why it stays opt-in, not default. Checkpoints therefore
+ship with the index manifest (fold/variant/seed per file, via
+scripts/checkpoint_index.py) instead of a bitwise-reproducibility promise the
+hardware cannot keep.

@@ -72,7 +72,7 @@ kaggle datasets version -p data -m "<run-tag> ckpts"                 # resume/ve
   B-grid/surface ckpts need a `--b/--repr` pass there before scoring.
 - `make eval` (`python -m evaluate --config`) still has no CLI (`src/evaluate.py`
   is functions-only); pre-existing gap, out of F012 scope.
-- `tests/test_models.py` needs `torchvision` (absent in this venv; pre-existing).
+- `tests/test_models.py` needs `torchvision` (declared in pyproject since F015-1).
 - Ruff debt outside the touched files is pre-existing; touched files are clean
   except `kernel/train.py` PLW1510 on the untouched `sh()` helper (pre-exists
   on main, out of scope here).

@@ -9,6 +9,15 @@ import os
 import pytest
 import torch
 
+try:
+    import transformers  # noqa: F401
+
+    _HAS_TRANSFORMERS = True
+except ImportError:
+    _HAS_TRANSFORMERS = False
+
+needs_transformers = pytest.mark.skipif(not _HAS_TRANSFORMERS, reason="transformers not installed")
+
 from models.heads import FrequencyHead, WaveformFrequencyModel, WaveformHead
 from models.resnet3d import ResNet3DEncoder
 from models.timesformer import TimeSformerEncoder
@@ -81,6 +90,7 @@ def _tiny_hf_state():
     return TimesformerModel(cfg).state_dict()
 
 
+@needs_transformers
 def test_hf_load_surgery_shapes():
     from models.timesformer import load_hf_timesformer
 
@@ -97,6 +107,7 @@ def test_hf_load_surgery_shapes():
     assert z.shape == (1, 48) and torch.isfinite(z).all()
 
 
+@needs_transformers
 def test_hf_load_maps_attention_weights():
     from models.timesformer import load_hf_timesformer
 

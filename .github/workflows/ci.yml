@@ -21,6 +21,8 @@ jobs:
           scripts/preprocess.py tests/test_train_cli.py
           tests/test_timesurface.py tests/test_data.py tests/test_evaluate.py
           tests/test_physics.py tests/test_voxel.py
-      # test_models needs torchvision (absent until F015-1); rest is CPU-fast.
-      - run: uv run pytest -q --ignore=tests/test_models.py
+          tests/test_checkpoint_index.py scripts/checkpoint_index.py
+          scripts/mini_e2e.py
+      # Full suite; test_models needs torchvision (declared since F015-1).
+      - run: uv run pytest -q
       - run: python3 scripts/check_site.py

@@ -1,8 +1,8 @@
-.PHONY: help setup download preprocess smoke train eval ridge test style clean kernel-smoke kernel-train kernel-timing
+.PHONY: help setup download preprocess smoke train eval ridge test style clean kernel-smoke kernel-train kernel-timing mini-e2e
 .DEFAULT_GOAL := help
 
 help: ## show targets
-	@grep -E '^[a-z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-12s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-12s %s\n", $$1, $$2}'
 
 setup: ## installs all dependencies (uv sync)
 	command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -25,6 +25,9 @@ eval: ## TEST-trial metrics, Delta/sigma estimators, O5 verdict
 
 ridge: ## RidgeCV linear baseline, LOCO folds, same Delta/se/O5 table
 	uv run python scripts/ridge_baseline.py
+
+mini-e2e: ## CPU miniature end-to-end smoke (synthetic, one fold, few epochs)
+	uv run python scripts/mini_e2e.py
 
 test: ## runs all unit tests
 	uv run pytest -q
