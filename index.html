@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Struct-X: Physics-Aware Event Vision for Robust Non-Contact Vibration Monitoring</title>
+<meta name="description" content="Struct-X reconstructs the LDV waveform a collocated laser Doppler vibrometer would have recorded from an event-camera stream, robust to sensing-condition shifts. Report, figures, verdict.">
+<style>
+body { max-width: 56rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; color: #1a1a1a; background: #fff; }
+h1, h2, h3 { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; line-height: 1.25; }
+h1 { font-size: 1.7rem; }
+h2 { font-size: 1.3rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; margin-top: 2.5rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin: 1rem 0; overflow-x: auto; display: block; }
+th, td { border: 1px solid #ccc; padding: 0.35rem 0.6rem; text-align: left; white-space: nowrap; }
+th { background: #f4f4f4; }
+figure { margin: 1.5rem 0; }
+figure img { max-width: 100%; height: auto; border: 1px solid #ddd; }
+figcaption { font-size: 0.9rem; color: #555; }
+code { background: #f4f4f4; padding: 0 0.3em; }
+nav ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; }
+.verdict { background: #fff8e1; border-left: 4px solid #e6a800; padding: 0.75rem 1rem; }
+footer { margin-top: 3rem; font-size: 0.9rem; color: #555; border-top: 1px solid #ddd; padding-top: 1rem; }
+</style>
+</head>
+<body>
+<header>
+<h1>Struct-X: Physics-Aware Event Vision for Robust Non-Contact Vibration Monitoring</h1>
+<p>Static results page. Content is reused verbatim from
+<a href="https://github.com/arnabwithab/struct-x/blob/main/results/report.md">results/report.md</a>
+(no new analysis). Full metric tables with standard errors live in
+<a href="https://github.com/arnabwithab/struct-x/blob/main/results/final_verdict.json">final_verdict.json</a>
+and
+<a href="https://github.com/arnabwithab/struct-x/blob/main/results/final_verdict_pretrained.json">final_verdict_pretrained.json</a>.</p>
+<nav>
+<ul>
+<li><a href="#question">Question</a></li>
+<li><a href="#method">Method</a></li>
+<li><a href="#metrics">Metrics</a></li>
+<li><a href="#verdict">Verdict</a></li>
+<li><a href="#cost">Physics cost/benefit</a></li>
+<li><a href="#survey">Event-camera survey</a></li>
+<li><a href="#limitations">Limitations</a></li>
+<li><a href="#links">Repo / report links</a></li>
+</ul>
+</nav>
+</header>
+
+<h2 id="question">0. Question</h2>
+<p>Event cameras watch vibration as a flicker of pixels. Struct-X turns that
+flicker into the waveform a collocated laser Doppler vibrometer (LDV) would
+have recorded — <strong>and is required to stay accurate when sensing conditions
+(lighting, contrast threshold, bias) drift.</strong> The same physical motion must
+give the same waveform. That invariance is measured, never assumed.</p>
+<p>Stakeholders: structural-health-monitoring teams who need cheap non-contact
+sensing (bridges, beams, machinery). Alternatives are bonded accelerometers
+(change the dynamics), LDVs (accurate but expensive, tripod-bound) and frame
+cameras (blur above ~100 Hz). Struct-X trades raw accuracy for cost plus
+field stability: events give microsecond timestamps at ~140 dB dynamic range.</p>
+
+<h3>Aims and how each was judged</h3>
+<ul>
+<li><strong>O1 — Accuracy:</strong> reconstruct LDV waveform + dominant frequency under the
+<em>same</em> acquisition condition. Judged by test-set RMSE / freq error.</li>
+<li><strong>O2 — Stability:</strong> quantify the robustness gap <code>Δ = metric(shifted) −
+metric(matched)</code> across illumination/threshold shifts, and minimise it.</li>
+<li><strong>O3 — Scarce data:</strong> only 30 independent trials. All splits trial-level;
+window-level splits forbidden. No Transformer trained from scratch.</li>
+<li><strong>O4 — Mechanism isolation:</strong> ablate what helps — data-only (a),
++temporal smoothness (b), +SDOF physics residual (c), both (d) — on a
+fixed 3×3 λ grid, best-by-validation-Δ, identical budget per variant.</li>
+<li><strong>O5 — Falsification (pre-registered):</strong> physics wins iff its Δ reduction
+exceeds trial-to-trial noise (<code>R &gt; σ_R</code>); otherwise report
+<strong>non-identifiable</strong>. Negative results count. Matched-set harm is reported
+separately, never netted.</li>
+<li><strong>RQ4:</strong> test whether freq error degrades less under shift than waveform
+RMSE (spectral peak is coarser than pointwise trace).</li>
+</ul>
+<p>Out of scope (never claimed): damage classification (no damage labels),
+generalisation beyond this rig, contrastive illumination loss.</p>
+
+<h2 id="method">Method</h2>
+<h3>Data</h3>
+<p>30 hammer-impact free-decay trials, XJTU-DV-Beam (Xi'an Jiaotong University,
+Zenodo 17447083, CC-BY-4.0). Conditions found in the archive (never
+invented): <strong>On/Off × set1–3 = 6 conditions</strong> (K=6 LOCO folds).
+Event files are Prophesee-style <code>.dat</code> (Event2D-packed); sensors are
+<strong>1280×720 from headers</strong> (never hardcoded). LDV is 256 Hz velocity <code>.txt</code>,
+integrated once to displacement + detrended. Trial pairing handles the
+archive's <code>On_set1_trai4.dat</code> typo.</p>
+<p>Preprocessing per trial: hot-pixel mask (&gt;5× median) + refractory filter
+(&lt;100 µs same-pixel) → ROI y-band (≥50% of peak, +8 px pad) →
+5-bin × 2-polarity voxels → per-channel frozen <strong>train</strong>-set z-score
+(eps 1e-6). LDV: detrend → 4th-order low-pass at 500 Hz → resample 1000 Hz →
+frozen train z-score. Windows 1.0 s / 0.5 s stride, trigger-anchored
+(argmax|v|, no hardcoded trigger), 100 ms post-trigger exclusion.
+<strong>Real count: 326 windows.</strong> Splits: LOCO over the 6 found conditions; matched 60/20/20;
+val-shift/test-shift 50/50 (2–3 trials — the dominant noise source).</p>
+<h3>Model and training</h3>
+<p>Voxel (10,H,W) → resize longest side to 224 + zero-pad square (adapter, pads
+recorded) → encoder → waveform head (T=1000) + frequency head (softplus).
+Two encoders: <strong>3D-ResNet18 control</strong> (stem 3→2 by channel mean) and a ported
+<strong>divided space-time TimeSformer</strong> (joint attention banned; Kinetics weights
+from Hugging Face <code>facebook/timesformer-base-finetuned-k400</code>, SHA pinned,
+C=2 stem surgery, temporal pos-embed interpolated to B frames, CC-NC 4.0
+research-only).</p>
+<p>Loss: <code>L = L_LDV + λp·L_phys + λs·L_smooth + 0.1·L_freq</code>; normalised SDOF
+residual with the G5 collapse guard (amplitude-blind by design; amplitude
+anchored by <code>L_LDV</code>); fp32 finite differences (central interior, one-sided
+edges); m=1, <code>m,c,k</code> log-decrement-fit on ONE train trial per fold
+(fd≈6.7 Hz everywhere, k≈1800, c≈2.2–2.9). Gradient-ratio controller with
+5-epoch warmup; max 50 epochs, patience-10 early stop on <strong>validation</strong>
+Δ_RMSE; Adam 2e-4; micro 8, eff 16. Everything tuned on val-Δ, never
+matched RMSE.</p>
+<p>Compute: Kaggle T4 (6-fold ResNet control + pilot + timing; ~16 h of 30 h
+quota) and a 24 GB RTX 4500 Ada (pretrained folds). No AMP (full fp32 —
+conservative deviation, no NaNs). Only best-per-fold checkpoints kept.</p>
+
+<h2 id="metrics">Metrics</h2>
+<h3>ResNet control, all 6 folds (test-trial mean ± std)</h3>
+<table>
+<tr><th>Fold</th><th>data matched</th><th>data Δ</th><th>sdof matched</th><th>sdof Δ</th><th>both matched</th><th>both Δ</th></tr>
+<tr><td>On_set1</td><td>1.98±3.10</td><td>−1.65</td><td>2.38±2.86</td><td>−1.61</td><td>2.39±2.85</td><td>−1.61</td></tr>
+<tr><td>Off_set1</td><td>1.95±2.80</td><td>−1.49</td><td>2.34±2.57</td><td>−1.33</td><td>2.39±2.55</td><td>−1.33</td></tr>
+<tr><td>Off_set2</td><td>2.43±3.43</td><td>−1.79</td><td>2.29±3.29</td><td>−1.59</td><td>2.53±3.21</td><td>−1.58</td></tr>
+<tr><td>Off_set3</td><td>0.37±0.07</td><td>−0.07</td><td>0.64±0.11</td><td>−0.01</td><td>0.63±0.10</td><td>−0.02</td></tr>
+<tr><td>On_set2</td><td>0.52±0.10</td><td>+2.23</td><td>1.05±0.25</td><td>+1.94</td><td>0.99±0.21</td><td>+1.98</td></tr>
+<tr><td>On_set3</td><td>0.47±0.10</td><td>−0.23</td><td>0.38±0.09</td><td>+0.23</td><td>0.37±0.07</td><td>+0.20</td></tr>
+</table>
+<p>(heads: matched = test-matched mean ± trial-std; Δ = shift − matched.
+Full per-trial tables with se in
+<a href="https://github.com/arnabwithab/struct-x/blob/main/results/final_verdict.json">results/final_verdict.json</a>.)</p>
+<p><strong>Full metric set (new): Pearson r is +0.03…+0.19 matched and ≈0 or negative
+under shift — the r &gt; 0.9 target is missed by an order of magnitude; the
+models do not capture waveform shape.</strong> MAE tracks RMSE. L_phys sits at
+1e11–1e12 (the 1/dt² amplification of noisy outputs) and is 10–100× smaller
+for physics-trained variants — the residual <em>is</em> being minimised, it just
+doesn't buy waveform fidelity. Inference latency 4–10 ms/window for ResNet (load-dependent) and 42 ms/window
+for the TimeSformer-Base pretrained model, both on the 4500 Ada — comfortably
+under the 50 ms soft bar. (Per-variant, per-fold latencies in
+results/final_verdict*.json.)</p>
+<figure>
+<img src="figs/o5_forest.png" alt="O5 falsification forest plot: physics Δ reduction vs trial-to-trial noise per fold">
+<figcaption>O5 forest — physics Δ reduction against trial-to-trial noise. Source: results/figs/o5_forest.png</figcaption>
+</figure>
+<figure>
+<img src="figs/matched_rmse.png" alt="Matched-condition RMSE across folds and ablation variants">
+<figcaption>Matched RMSE across folds and variants. Source: results/figs/matched_rmse.png</figcaption>
+</figure>
+<h3>Kinetics-pretrained TimeSformer (3 folds)</h3>
+<table>
+<tr><th>Fold</th><th>data matched</th><th>data Δ</th><th>both matched</th><th>both Δ</th></tr>
+<tr><td>On_set1 (pilot)</td><td>1.96</td><td>−1.35</td><td>2.60</td><td>−1.22</td></tr>
+<tr><td>On_set2</td><td>0.62</td><td>+2.18±2.23</td><td>1.36</td><td>+1.98±2.03</td></tr>
+<tr><td>Off_set3</td><td>0.54</td><td>−0.08±0.08</td><td>0.63</td><td>−0.07±0.08</td></tr>
+</table>
+<p>Pretraining converges in 1–5 epochs (vs up to 39 from scratch) but lands in
+the same place: matched RMSE within noise of the control on every shared
+fold. No robustness gain either.</p>
+<figure>
+<img src="figs/pretrained_vs_control.png" alt="Pretrained TimeSformer vs ResNet control matched RMSE comparison">
+<figcaption>Pretrained vs control. Source: results/figs/pretrained_vs_control.png</figcaption>
+</figure>
+
+<h2 id="verdict">Verdict</h2>
+<div class="verdict">
+<p><strong>O5: non-identifiable on all 8 backbone×fold settings.</strong> Largest |R| is
+0.43 (On_set3-control) against σ=0.06 — and in the wrong direction. The
+physics term does not clear trial-to-trial noise anywhere.</p>
+</div>
+<p><strong>RQ4 (corrected): |Δfreq| &lt; |Δrmse| holds on all 6 control folds — but both
+deltas are usually negative (shift tests <em>easier</em> than matched), so "degrades
+less" is ill-posed here. The stored <code>rq4</code> flags used a raw <code>&lt;</code> comparison
+that returns the wrong answer on negative Deltas (a real bug, now fixed to
+<code>rq4_abs</code> in the verdict JSONs); the honest finding is that RQ4 cannot be
+meaningfully tested until the matched upper bound is stable. Pretrained
+On_set2 is the only clean positive.</strong> Matched harm: +0.1 to +0.7 RMSE on most
+folds — physics costs
+matched accuracy while buying no stability. The honest summary: a
+regularisation signal with no measurable robustness gain and a consistent
+matched-accuracy price.</p>
+<p><strong>Caveat that dominates everything:</strong> matched test RMSE itself spans
+0.2–2.6 across folds with trial stds up to 5 on unit-variance data. Five-trial
+test sets with outlier trials cannot bound anything — the matched upper
+bound is unstable, so every Δ built on it inherits that instability.</p>
+
+<h2 id="cost">Physics cost/benefit (measured, T4, same micro-batch/GPU/seeds)</h2>
+<table>
+<tr><th>Pair</th><th>ms/window/step</th><th>Overhead</th></tr>
+<tr><td>(a) data-only 122.0 vs (c) +SDOF 113.9</td><td>—</td><td>−6.7% (noise)</td></tr>
+<tr><td>(b) +smooth 116.8 vs (d) both 119.7</td><td>—</td><td>+2.6% (noise)</td></tr>
+</table>
+<p>FLOP prior (<code>~6T</code> vs <code>~10¹⁰</code>) agrees with measurement: <strong>no measurable
+per-step cost</strong>. Convergence: physics reaches target in fewer epochs on most
+folds (On_set2: data 39/49 vs sdof 5/16) but full-budget runs also occur
+(Off_set2 both 2/50) — no consistent GPU-hour saving.</p>
+<p><strong>Verdict line:</strong> physics cost ~0% per step, saved no consistent GPU-hours,
+moved matched RMSE by +0.1 to +0.5 on most folds — regularisation benefit
+with no compute saving and no robustness gain.</p>
+
+<h2 id="survey">Event-camera usage survey</h2>
+<table>
+<tr><th>Other use</th><th>Their trick</th><th>Struct-X decision</th></tr>
+<tr><td>Event–frame VDM (Wu et al. 2026)</td><td>IWE contrast max + NCC, survival-rate protocol</td><td>HW-trigger sync; trained encoder, not per-sequence optimisation</td></tr>
+<tr><td>E-RAFT / TimeLens (optical flow, interpolation)</td><td>Short-term motion, frame synthesis</td><td>Voxels over time surfaces; surfaces as (unbuilt) fallback</td></tr>
+<tr><td>HDR/high-speed video (Rebecq 2017)</td><td>140 dB / µs timestamps vs CMOS</td><td>Sensor-motivation numbers; frames are the fails-&gt;100 Hz column</td></tr>
+<tr><td>Representation taxonomy (Gallego 2022)</td><td>Frames vs surfaces vs voxels vs learned</td><td>Voxels + polarity + frozen train stats</td></tr>
+<tr><td>Limitations literature (Wu §4.5)</td><td>Continuity/brightness-constancy failures</td><td>Δ exists to measure exactly this; ROI + refractory filter</td></tr>
+</table>
+
+<h2 id="limitations">Gaps and what remains</h2>
+<ul>
+<li>B=5–9 ablation never run (B=5 everywhere); time-surface fallback built but
+never compared head-to-head; AMP code ready but never run for comparison.</li>
+<li>Pretrained comparison covers 3 of 6 folds (quota; conclusion stable).</li>
+<li>Test sets of 5 trials are too small to bound Δ — the single biggest
+methodological weakness; more trials (or more conditions) is the fix.</li>
+<li>Novelty assessed: pipeline ✓, fusion ✓, Δ defined+measured ✓, collapse
+guard ✓, pretrained-vs-lightweight duality partially evaluated (init
+speeds convergence 1–5 vs ≤39 epochs, same endpoint).</li>
+</ul>
+
+<h2 id="links">Repo / report links</h2>
+<ul>
+<li>Repository: <a href="https://github.com/arnabwithab/struct-x">github.com/arnabwithab/struct-x</a></li>
+<li>Full report: <a href="https://github.com/arnabwithab/struct-x/blob/main/results/report.md">results/report.md</a></li>
+<li>Control verdict JSON: <a href="https://github.com/arnabwithab/struct-x/blob/main/results/final_verdict.json">results/final_verdict.json</a></li>
+<li>Pretrained verdict JSON: <a href="https://github.com/arnabwithab/struct-x/blob/main/results/final_verdict_pretrained.json">results/final_verdict_pretrained.json</a></li>
+<li>Design doc (sole source of truth): <a href="https://github.com/arnabwithab/struct-x/blob/main/docs/design.md">docs/design.md</a></li>
+<li>Dataset: XJTU-DV, Zenodo record <a href="https://zenodo.org/records/17447083">17447083</a> (CC-BY-4.0)</li>
+</ul>
+
+<footer>
+<p>Struct-X — Arnab Mandal, Department of Computer Science and Engineering.
+XJTU-DV is open source from Xi'an Jiaotong University (Li et al., CJME 2026)
+via Zenodo 17447083. TimeSformer code/weights are CC-NC 4.0 (research-only);
+any product path must use the ResNet control. No damage-classification claim is made.</p>
+</footer>
+</body>
+</html>
