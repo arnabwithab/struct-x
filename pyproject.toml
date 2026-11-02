@@ -8,6 +8,7 @@ dependencies = [
   "numpy",
   "scipy",
   "pyyaml",
+  "scikit-learn>=1.7.2",
 ]
 
 [dependency-groups]

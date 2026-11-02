@@ -91,6 +91,15 @@ def rq4_compare(freq_delta, rmse_delta):
     return bool(float(freq_delta) < float(rmse_delta))
 
 
+def rq4_abs(freq_delta, rmse_delta):
+    """Magnitude version of RQ4: |d_freq| < |d_rmse|.
+
+    Raw `<` lies when deltas go negative (shift easier than matched):
+    -0.35 < -0.02 is True but freq moved more. Use this for verdicts.
+    """
+    return bool(abs(float(freq_delta)) < abs(float(rmse_delta)))
+
+
 def matched_degradation_report(matched_base, matched_phys):
     """Matched-condition cost of physics, reported separately -- never netted into R."""
     base = float(np.mean(np.asarray(list(matched_base), dtype=float)))

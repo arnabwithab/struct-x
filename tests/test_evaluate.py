@@ -60,6 +60,13 @@ def test_rq4_true_and_false():
     assert ev.rq4_compare(freq_delta=0.05, rmse_delta=0.01) is False
 
 
+def test_rq4_abs_uses_magnitudes():
+    # Negative deltas (shift easier than matched) break raw `<`: -0.35 < -0.02
+    # is True but means freq moved MORE. Magnitudes give the honest answer.
+    assert ev.rq4_abs(freq_delta=-0.02, rmse_delta=-0.35) is True
+    assert ev.rq4_abs(freq_delta=-0.35, rmse_delta=-0.02) is False
+
+
 def test_matched_degradation_harm_sign():
     harmed = ev.matched_degradation_report(
         matched_base=[0.10, 0.12, 0.11], matched_phys=[0.13, 0.14, 0.15]

@@ -1,4 +1,4 @@
-.PHONY: help setup download preprocess smoke train eval test style clean kernel-smoke kernel-train kernel-timing
+.PHONY: help setup download preprocess smoke train eval ridge test style clean kernel-smoke kernel-train kernel-timing
 .DEFAULT_GOAL := help
 
 help: ## show targets
@@ -22,6 +22,9 @@ train: ## LOCO training, all O4 ablations
 
 eval: ## TEST-trial metrics, Delta/sigma estimators, O5 verdict
 	uv run python -m evaluate --config configs/base.yaml
+
+ridge: ## RidgeCV linear baseline, LOCO folds, same Delta/se/O5 table
+	uv run python scripts/ridge_baseline.py
 
 test: ## runs all unit tests
 	uv run pytest -q

@@ -147,6 +147,18 @@ matched-accuracy price.
 test sets with outlier trials cannot bound anything — the matched upper
 bound is unstable, so every Δ built on it inherits that instability.
 
+**Ridge baseline (third family, F013):** a RidgeCV linear model on pooled voxel
+features (per-channel bin means, train-trials-only fit) is currently the model
+to beat on RMSE: matched 0.29–0.66 beats deep `data_only` (0.37–2.43) on all 6
+folds with |Δ| ≤ 0.37, and Pearson r 0.17–0.24 matches or exceeds deep
+`data_only` (0.07–0.19) while the physics arm collapses (r ≤ 0.03). This
+implicates the representation/task, not a linear victory: r ≈ 0.2 means ridge
+captures the coarse amplitude envelope that dominates RMSE while reconstructing
+no waveform shape — and neither does any deep variant. Keep ridge as the
+standing bar; deep work should target r > 0.5 before any
+waveform-reconstruction claim. Full table: `results/ridge_verdict.json`
+(`make ridge`).
+
 ## 7. Physics cost/benefit (measured, T4, same micro-batch/GPU/seeds)
 
 | Pair | ms/window/step | Overhead |
