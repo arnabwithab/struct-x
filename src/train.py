@@ -229,9 +229,9 @@ def build_arg_parser():
 
     p = argparse.ArgumentParser(description="LOCO training, O4 ablations (design sec 7-8).")
     p.add_argument("--config", default="configs/base.yaml")
-    p.add_argument("--b", type=int, default=5, choices=list(VALID_B))
+    p.add_argument("--b", type=int, default=None, choices=list(VALID_B))
     p.add_argument("--use-amp", action="store_true", help="AMP fp16 + fp32 physics carve-out")
-    p.add_argument("--repr", default="voxel", choices=list(REPR_CHOICES))
+    p.add_argument("--repr", default=None, choices=list(REPR_CHOICES))
     p.add_argument("--encoder", default="resnet", choices=["resnet", "timesformer"])
     p.add_argument("--folds", default="", help="comma-separated held conditions, empty = all")
     p.add_argument(
@@ -282,6 +282,19 @@ def resolve_config(args, config_path=None):
     }
 
 
+def resolve_wants(folds, folds_arg, variants_arg):
+    """Parse + validate --folds/--variants against LOCO folds (early ValueError)."""
+    want_folds = [f for f in folds_arg.split(",") if f] or sorted(folds)
+    want_v = [v for v in variants_arg.split(",") if v] or sorted(o4_variant_configs())
+    unknown_v = set(want_v) - set(o4_variant_configs())
+    if unknown_v:
+        raise ValueError(f"unknown variants: {sorted(unknown_v)}")
+    unknown_f = set(want_folds) - set(folds)
+    if unknown_f:
+        raise ValueError(f"unknown folds: {sorted(unknown_f)}")
+    return want_folds, want_v
+
+
 def main(argv=None):
     """Offline LOCO driver: decode -> frozen stats -> folds x variants -> ckpts."""
     import json
@@ -327,18 +340,22 @@ def main(argv=None):
         if cfg["encoder"] == "timesformer":
             from models.timesformer import TimeSformerEncoder
 
-            return WaveformFrequencyModel(TimeSformerEncoder(num_frames=b_eff), 768)
+            enc = TimeSformerEncoder(num_frames=b_eff)
+            try:
+                enc.load_kinetics_weights()
+            except (OSError, ValueError, RuntimeError) as e:
+                raise SystemExit(
+                    "timesformer needs Kinetics-pretrained init (design sec 5); "
+                    f"refusing to train Transformer from scratch: {e}"
+                )
+            return WaveformFrequencyModel(enc, 768)
         from models.resnet3d import ResNet3DEncoder
 
         return WaveformFrequencyModel(ResNet3DEncoder(512), 512)
 
     conditions = {t: condition_of(t) for t, _, _ in pairs}
     folds = make_loco_splits(conditions, seed=cfg["seed"])
-    want_folds = [f for f in cfg["folds"].split(",") if f] or sorted(folds)
-    want_v = [v for v in cfg["variants"].split(",") if v] or sorted(o4_variant_configs())
-    unknown = set(want_v) - set(o4_variant_configs())
-    if unknown:
-        raise ValueError(f"unknown variants: {sorted(unknown)}")
+    want_folds, want_v = resolve_wants(folds, cfg["folds"], cfg["variants"])
 
     out = {"config": {k: v for k, v in cfg.items()}, "folds": {}}
     for held in want_folds:
@@ -386,6 +403,7 @@ def main(argv=None):
                 micro_batch=micro,
                 eff_batch=cfg["eff_batch"],
                 max_epochs=cfg["max_epochs"],
+                patience=cfg["patience"],
                 lr=cfg["lr"],
                 seed=cfg["seed"],
                 device=device,

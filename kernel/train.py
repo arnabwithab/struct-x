@@ -3,6 +3,8 @@
 Re-decodes all 30 trials with raw (unscaled) q, then per fold: frozen train
 stats, m,c,k from ONE train trial, all 4 O4 variants, TEST-trial eval, O5-ready
 metrics. Campaign mode: FOLDS_TO_RUN lists the folds this version trains.
+Hyperparams (lr/epochs/patience/grids) come from train.py constants, NOT
+base.yaml — keep them in sync when train.py changes.
 """
 
 import json
@@ -25,7 +27,24 @@ VARIANTS_TO_RUN = [
     if v
 ]
 USE_PRETRAINED = True
+ENCODER = os.environ.get("STRUCTX_ENCODER", "timesformer")  # resnet = control path
+assert ENCODER in ("resnet", "timesformer"), f"bad STRUCTX_ENCODER={ENCODER}"
+USE_PRETRAINED = ENCODER == "timesformer"
+KNOWN_VARIANTS = ("data_only", "smoothness_only", "sdof_only", "both")
 B_EFF = 1 if REPR == "timesurface" else B  # surface (2,H,W) -> single-frame (2,1,224,224)
+
+
+def validate_knobs(b, repr_kind, variants, folds_to_run, folds=None):
+    """Fail fast on bad queue knobs (before decode; folds checked once known)."""
+    assert b in (3, 5, 7, 9), f"bad B={b}"
+    assert repr_kind in ("voxel", "timesurface"), f"bad REPR={repr_kind}"
+    assert variants and set(variants) <= set(KNOWN_VARIANTS), f"bad VARIANTS={variants}"
+    assert folds_to_run, "empty FOLDS"
+    if folds is not None:
+        unknown = set(folds_to_run) - set(folds)
+        if unknown:
+            raise ValueError(f"unknown folds: {sorted(unknown)}")
+    return True
 
 
 def sh(cmd: str) -> str:
@@ -44,6 +63,7 @@ def main() -> None:
     import numpy as np
     import torch
 
+    validate_knobs(B, REPR, VARIANTS_TO_RUN, FOLDS_TO_RUN)  # before decode
     print("=== nvidia-smi ===")
     print(sh("nvidia-smi"))
     print("=== clone struct-x ===")
@@ -92,6 +112,7 @@ def main() -> None:
 
     conditions = {t: condition_of(t) for t, _, _ in pairs}
     folds = make_loco_splits(conditions, seed=0)
+    validate_knobs(B, REPR, VARIANTS_TO_RUN, FOLDS_TO_RUN, folds)
 
     if USE_PRETRAINED:
         import urllib.request
@@ -184,6 +205,7 @@ def main() -> None:
                 device=device,
                 ckpt_path=ckpt,
                 use_amp=USE_AMP,
+                # lr/epochs/patience/grids: train.py defaults (not base.yaml)
             )
             results[variant] = res
             show = {

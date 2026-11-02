@@ -9,13 +9,17 @@ Quota cited: ~14 h T4 left. Design doc secs 5,7,8,10 govern; never contradict th
 |---|---|---|---|
 | 1 | B override `--b {3,7,9}` | `bash scripts/run_folds.sh --b 7 --folds On_set1 --variants data_only,both` | `B = 7` (temporal pos-embed re-interps 8->B in `load_kinetics_weights`; `TimeSformerEncoder(num_frames=B_EFF)`) |
 | 2 | AMP `--use-amp` | same + `--use-amp` (fp32 carve-out already in `_train_single_config`) | `USE_AMP = True` -> `run_fold(..., use_amp=USE_AMP)` |
-| 3 | repr `--repr voxels\|timesurface` | `scripts/preprocess.py --b 5 --repr timesurface` + train `--repr timesurface` | `REPR = "timesurface"` (`B_EFF=1`; `voxel_to_model_input` maps (2,H,W)->(2,1,224,224), no interp needed) |
+| 3 | repr `--repr voxel\|timesurface` | `scripts/preprocess.py --b 5 --repr timesurface` + train `--repr timesurface` | `REPR = "timesurface"` (`B_EFF=1`; `voxel_to_model_input` maps (2,H,W)->(2,1,224,224), no interp needed) |
 
 Local data path: `scripts/preprocess.py --config configs/base.yaml --b B --repr R`
 decodes with `n_bins=B, repr_kind=R`. `--b/--bins` alias added; `--config`
 supplies the bins default. `make train` now works (`PYTHONPATH=src` fix in
 `run_folds.sh`); queue flags are source of truth for B/AMP/repr, base.yaml for
 lr/epochs/patience/micro/grids. Tests: `tests/test_train_cli.py` (15 tests).
+
+`src/train.py` re-decodes from the archive on every run — it does NOT consume
+`scripts/preprocess.py` `.npz` files. Pass `--b/--repr` identically to both so
+the cached voxels match what train actually uses.
 
 ## Bounded defaults (quota protection)
 
@@ -69,4 +73,6 @@ kaggle datasets version -p data -m "<run-tag> ckpts"                 # resume/ve
 - `make eval` (`python -m evaluate --config`) still has no CLI (`src/evaluate.py`
   is functions-only); pre-existing gap, out of F012 scope.
 - `tests/test_models.py` needs `torchvision` (absent in this venv; pre-existing).
-- Ruff debt outside the touched files is pre-existing; touched files are clean.
+- Ruff debt outside the touched files is pre-existing; touched files are clean
+  except `kernel/train.py` PLW1510 on the untouched `sh()` helper (pre-exists
+  on main, out of scope here).

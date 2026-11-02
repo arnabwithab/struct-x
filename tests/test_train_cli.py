@@ -21,12 +21,12 @@ def _parse(*argv):
     return train.build_arg_parser().parse_args(list(argv))
 
 
-# --- train CLI defaults ---
+# --- train CLI defaults (None = yaml fallback is live; see resolve_config) ---
 def test_train_parser_defaults():
     args = _parse()
-    assert args.b == 5
+    assert args.b is None
     assert args.use_amp is False
-    assert args.repr == "voxel"
+    assert args.repr is None
     assert args.folds == "" and args.variants == ""
 
 
@@ -108,3 +108,79 @@ def test_kernel_train_has_queue_knobs():
         "STRUCTX_VARIANTS",
     ):
         assert knob in src
+
+
+# --- review fixes: yaml fallback must be live (parser defaults None) ---
+def test_resolve_config_yaml_b_fallback(tmp_path):
+    import yaml
+
+    p = tmp_path / "q.yaml"
+    p.write_text(yaml.safe_dump({"representation": {"B": 7}}))
+    assert train.resolve_config(_parse(), str(p))["b"] == 7
+
+
+def test_resolve_config_yaml_repr_fallback(tmp_path):
+    import yaml
+
+    p = tmp_path / "q.yaml"
+    p.write_text(yaml.safe_dump({"representation": {"repr": "timesurface"}}))
+    assert train.resolve_config(_parse(), str(p))["repr"] == "timesurface"
+
+
+# --- review fixes: patience threading + want validation ---
+def test_main_threads_config_patience_into_run_fold():
+    import pathlib
+
+    src = pathlib.Path(__file__).resolve().parent.parent.joinpath("src", "train.py").read_text()
+    assert 'patience=cfg["patience"]' in src
+
+
+def test_resolve_wants_rejects_unknown_variant():
+    with pytest.raises(ValueError):
+        train.resolve_wants({"On_set1": {}}, "", "bogus")
+
+
+def test_resolve_wants_rejects_unknown_fold():
+    with pytest.raises(ValueError):
+        train.resolve_wants({"On_set1": {}}, "Nope_set9", "")
+
+
+def _load_kernel():
+    spec = importlib.util.spec_from_file_location("structx_kernel_train", KERNEL_TRAIN_PY)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_kernel_has_encoder_knob():
+    with open(KERNEL_TRAIN_PY) as f:
+        src = f.read()
+    assert "STRUCTX_ENCODER" in src
+
+
+def test_kernel_validates_bad_b():
+    with pytest.raises(AssertionError):
+        _load_kernel().validate_knobs(4, "voxel", ["data_only"], ["On_set1"])
+
+
+def test_kernel_validates_bad_repr():
+    with pytest.raises(AssertionError):
+        _load_kernel().validate_knobs(5, "frames", ["data_only"], ["On_set1"])
+
+
+def test_kernel_validates_bad_variant():
+    with pytest.raises(AssertionError):
+        _load_kernel().validate_knobs(5, "voxel", ["bogus"], ["On_set1"])
+
+
+def test_kernel_validates_unknown_fold():
+    with pytest.raises(ValueError):
+        _load_kernel().validate_knobs(
+            5, "voxel", ["data_only"], ["Nope_set9"], folds={"On_set1": {}}
+        )
+
+
+def test_preprocess_rejects_bad_b():
+    mod = _load_preprocess()
+    with pytest.raises(SystemExit):
+        mod.build_arg_parser().parse_args(["--b", "4"])

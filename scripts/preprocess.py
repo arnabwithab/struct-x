@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from data_loader import condition_of, pair_trials, trial_to_training_pairs
+from train import VALID_B
 
 
 def build_arg_parser():
@@ -16,7 +17,7 @@ def build_arg_parser():
     parser.add_argument("--archive", default="data/XJTU-DV-Beam")
     parser.add_argument("--out", default="data/voxels")
     parser.add_argument("--trials", default="", help="comma-separated trial ids, empty = all")
-    parser.add_argument("--b", "--bins", dest="bins", type=int, default=None)
+    parser.add_argument("--b", "--bins", dest="bins", type=int, default=None, choices=list(VALID_B))
     parser.add_argument("--repr", choices=["voxel", "timesurface"], default="voxel")
     return parser
 
