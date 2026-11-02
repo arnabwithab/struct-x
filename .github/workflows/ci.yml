@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --group dev
+      - run: uv run black --check src tests scripts kernel
+      # Pinned clean list only: repo carries pre-existing ruff debt
+      # elsewhere (see F015). Extend this list as debt is fixed.
+      - run: >-
+          uv run ruff check src/train.py src/physics.py src/mck_fit.py
+          src/evaluate.py src/time_surface.py scripts/check_site.py
+          scripts/preprocess.py tests/test_train_cli.py
+          tests/test_timesurface.py tests/test_data.py tests/test_evaluate.py
+          tests/test_physics.py tests/test_voxel.py
+      # test_models needs torchvision (absent until F015-1); rest is CPU-fast.
+      - run: uv run pytest -q --ignore=tests/test_models.py
+      - run: python3 scripts/check_site.py
