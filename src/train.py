@@ -23,6 +23,9 @@ import torch
 import physics
 from data_loader import make_loco_splits
 
+VALID_B = (3, 5, 7, 9)  # B=5 default; {3,7,9} = F012-3 ablation grid (sec 8)
+REPR_CHOICES = ("voxel", "timesurface")
+
 LP_GRID = [1e-3, 1e-2, 1e-1]
 LS_GRID = [1e-4, 1e-3, 1e-2]
 LP_FLOOR = 1e-4  # controller lower bound (sec 7)
@@ -205,6 +208,204 @@ def _train_single_config(
         "epochs_run": len(val_hist),
         "state": best_state,
     }
+
+
+def effective_num_frames(b, repr_kind):
+    """Model frames: voxels run T=B; a (2,H,W) time-surface is a single frame.
+
+    voxel_to_model_input already maps (2,H,W) -> (2,1,224,224), so the surface
+    path needs no pos-embed re-interp; B only matters for voxels.
+    """
+    return 1 if repr_kind == "timesurface" else int(b)
+
+
+def build_arg_parser():
+    """CLI for `python -m train` / run_folds.sh (F012 queue flags).
+
+    Queue flags are the source of truth for B/AMP/repr; --config supplies the
+    training hyperparams (lr, epochs, patience, micro/eff batch, grids, seed).
+    """
+    import argparse
+
+    p = argparse.ArgumentParser(description="LOCO training, O4 ablations (design sec 7-8).")
+    p.add_argument("--config", default="configs/base.yaml")
+    p.add_argument("--b", type=int, default=5, choices=list(VALID_B))
+    p.add_argument("--use-amp", action="store_true", help="AMP fp16 + fp32 physics carve-out")
+    p.add_argument("--repr", default="voxel", choices=list(REPR_CHOICES))
+    p.add_argument("--encoder", default="resnet", choices=["resnet", "timesformer"])
+    p.add_argument("--folds", default="", help="comma-separated held conditions, empty = all")
+    p.add_argument(
+        "--variants", default="", help="subset of data_only,smoothness_only,sdof_only,both"
+    )
+    p.add_argument("--archive", default="data/XJTU-DV-Beam")
+    p.add_argument("--out", default="outputs/train_results.json")
+    p.add_argument("--ckpt-dir", default="outputs/ckpts")
+    p.add_argument("--micro", type=int, default=None, help="override config micro-batch")
+    p.add_argument("--max-epochs", type=int, default=None)
+    p.add_argument("--seed", type=int, default=None)
+    p.add_argument("--device", default=None, help="cuda/cpu; default auto")
+    return p
+
+
+def resolve_config(args, config_path=None):
+    """Merge base.yaml hyperparams with the CLI queue flags (no training runs)."""
+    import yaml
+
+    path = config_path if config_path is not None else getattr(args, "config", "")
+    with open(path) as f:
+        base = yaml.safe_load(f) or {}
+    rep = base.get("representation", {}) or {}
+    opt = base.get("optim", {}) or {}
+    loss = base.get("loss", {}) or {}
+    data = base.get("data", {}) or {}
+    return {
+        "b": args.b if args.b is not None else int(rep.get("B", 5)),
+        "use_amp": args.use_amp,
+        "repr": args.repr or rep.get("repr", "voxel"),
+        "encoder": args.encoder,
+        "lr": float(opt.get("lr", 2e-4)),
+        "max_epochs": args.max_epochs or int(opt.get("max_epochs", MAX_EPOCHS)),
+        "patience": int(opt.get("patience", PATIENCE)),
+        "micro": args.micro,
+        "micro_4060": int(opt.get("micro_batch_4060", 4)),
+        "micro_t4": int(opt.get("micro_batch_t4", 8)),
+        "eff_batch": int(opt.get("effective_batch", 16)),
+        "lp_grid": list(loss.get("lambda_p_grid", LP_GRID)),
+        "ls_grid": list(loss.get("lambda_s_grid", LS_GRID)),
+        "seed": args.seed if args.seed is not None else int(data.get("seed", 0)),
+        "folds": args.folds,
+        "variants": args.variants,
+        "archive": args.archive,
+        "out": args.out,
+        "ckpt_dir": args.ckpt_dir,
+        "device": args.device,
+    }
+
+
+def main(argv=None):
+    """Offline LOCO driver: decode -> frozen stats -> folds x variants -> ckpts."""
+    import json
+    import os
+
+    args = build_arg_parser().parse_args(argv)
+    cfg = resolve_config(args)
+    b_eff = effective_num_frames(cfg["b"], cfg["repr"])
+
+    from data_loader import (
+        compute_train_stats,
+        condition_of,
+        pair_trials,
+        parse_ldv_txt,
+        pick_mck_fit_trial,
+        trial_to_training_pairs,
+    )
+    from mck_fit import fit_mck
+    from voxel import voxel_to_model_input
+
+    device = cfg["device"] or ("cuda" if torch.cuda.is_available() else "cpu")
+    micro = cfg["micro"] or (cfg["micro_t4"] if device.startswith("cuda") else cfg["micro_4060"])
+    print(
+        f"B={cfg['b']} frames={b_eff} repr={cfg['repr']} amp={cfg['use_amp']} "
+        f"encoder={cfg['encoder']} device={device} micro={micro}",
+        flush=True,
+    )
+
+    pairs = pair_trials(os.path.join(cfg["archive"], "DV"), os.path.join(cfg["archive"], "LDV"))
+    raw, trial_f = {}, {}
+    for trial_id, dv_path, ldv_path in pairs:
+        win = trial_to_training_pairs(
+            dv_path, ldv_path, n_bins=cfg["b"], repr_kind=cfg["repr"], standardize_q=False
+        )
+        t_raw, v_raw = parse_ldv_txt(ldv_path)
+        trial_f[trial_id] = float(fit_mck(v_raw, 1 / float(np.median(np.diff(t_raw))))["fd"])
+        raw[trial_id] = [(trial_id, v, q) for v, q in win]
+        print(f"{trial_id}: {len(win)} windows", flush=True)
+
+    def make_model():
+        from models.heads import WaveformFrequencyModel
+
+        if cfg["encoder"] == "timesformer":
+            from models.timesformer import TimeSformerEncoder
+
+            return WaveformFrequencyModel(TimeSformerEncoder(num_frames=b_eff), 768)
+        from models.resnet3d import ResNet3DEncoder
+
+        return WaveformFrequencyModel(ResNet3DEncoder(512), 512)
+
+    conditions = {t: condition_of(t) for t, _, _ in pairs}
+    folds = make_loco_splits(conditions, seed=cfg["seed"])
+    want_folds = [f for f in cfg["folds"].split(",") if f] or sorted(folds)
+    want_v = [v for v in cfg["variants"].split(",") if v] or sorted(o4_variant_configs())
+    unknown = set(want_v) - set(o4_variant_configs())
+    if unknown:
+        raise ValueError(f"unknown variants: {sorted(unknown)}")
+
+    out = {"config": {k: v for k, v in cfg.items()}, "folds": {}}
+    for held in want_folds:
+        fold = folds[held]
+        train_w = [w for t in fold["train"] for w in raw[t]]
+        q_mean, q_std = compute_train_stats([w[2] for w in train_w])
+        vx = np.stack([voxel_to_model_input(w[1])[0] for w in train_w])
+        mu = torch.from_numpy(vx.mean(axis=(0, 3, 4))).view(2, -1, 1, 1).float()
+        sg = torch.from_numpy(vx.std(axis=(0, 3, 4))).view(2, -1, 1, 1).float()
+
+        def batchify(items, _mu=mu, _sg=sg, _qm=q_mean, _qs=q_std, _tf=trial_f):
+            batches = []
+            for i in range(0, len(items), micro):
+                chunk = items[i : i + micro]
+                v = torch.stack(
+                    [
+                        (torch.from_numpy(voxel_to_model_input(w[1])[0]).float() - _mu)
+                        / (_sg + 1e-6)
+                        for w in chunk
+                    ]
+                )
+                q = torch.stack([torch.from_numpy((w[2] - _qm) / (_qs + 1e-6)) for w in chunk])
+                f = torch.tensor([_tf[w[0]] for w in chunk], dtype=torch.float32)
+                batches.append((v, q.float(), f))
+            return batches
+
+        t_mck, v_mck = parse_ldv_txt({t: p for t, _, p in pairs}[pick_mck_fit_trial(fold["train"])])
+        mck = fit_mck(v_mck, 1 / float(np.median(np.diff(t_mck))))
+        m, c, k = mck["m"], mck["c"], mck["k"]
+        train_b = batchify(train_w)
+        vm_b = batchify([w for t in fold["val_matched"] for w in raw[t]])
+        vs_b = batchify([w for t in fold["val_shift"] for w in raw[t]])
+        fold_res = {}
+        for variant in want_v:
+            ckpt = os.path.join(cfg["ckpt_dir"], held, f"{variant}.pt")
+            res = run_fold(
+                train_b,
+                vm_b,
+                vs_b,
+                make_model,
+                m,
+                c,
+                k,
+                variant=variant,
+                micro_batch=micro,
+                eff_batch=cfg["eff_batch"],
+                max_epochs=cfg["max_epochs"],
+                lr=cfg["lr"],
+                seed=cfg["seed"],
+                device=device,
+                ckpt_path=ckpt,
+                use_amp=cfg["use_amp"],
+                lp_grid=cfg["lp_grid"],
+                ls_grid=cfg["ls_grid"],
+            )
+            fold_res[variant] = res
+            print(f"{held}/{variant}: best_val_delta={res['best_val_delta']:.4f}", flush=True)
+        out["folds"][held] = fold_res
+    os.makedirs(os.path.dirname(cfg["out"]) or ".", exist_ok=True)
+    with open(cfg["out"], "w") as f:
+        json.dump(out, f)
+    print(f"wrote {cfg['out']}")
+    return out
+
+
+if __name__ == "__main__":
+    main()
 
 
 def run_fold(

@@ -11,9 +11,21 @@ import subprocess
 import sys
 
 WORKING_DIR = "/kaggle/working"
-# Campaign mode: F011 pilot runs pretrained TimeSformer on one fold.
-FOLDS_TO_RUN = ["On_set1"]
+# F012 queue knobs: EDIT PER PUSH (Kaggle script kernels take no CLI args).
+# Local runs may export STRUCTX_* instead. Defaults = F011 pilot (1 fold, full grid).
+B = int(os.environ.get("STRUCTX_B", "5"))
+USE_AMP = os.environ.get("STRUCTX_USE_AMP", "0") == "1"
+REPR = os.environ.get("STRUCTX_REPR", "voxel")
+FOLDS_TO_RUN = [f for f in os.environ.get("STRUCTX_FOLDS", "On_set1").split(",") if f]
+VARIANTS_TO_RUN = [
+    v
+    for v in os.environ.get("STRUCTX_VARIANTS", "data_only,smoothness_only,sdof_only,both").split(
+        ","
+    )
+    if v
+]
 USE_PRETRAINED = True
+B_EFF = 1 if REPR == "timesurface" else B  # surface (2,H,W) -> single-frame (2,1,224,224)
 
 
 def sh(cmd: str) -> str:
@@ -39,6 +51,9 @@ def main() -> None:
         sh(f"git clone -q https://github.com/arnabwithab/struct-x.git {WORKING_DIR}/structx-repo")
     )
     sys.path.insert(0, f"{WORKING_DIR}/structx-repo/src")
+    print(
+        f"B={B} frames={B_EFF} repr={REPR} amp={USE_AMP} folds={FOLDS_TO_RUN} variants={VARIANTS_TO_RUN}"
+    )
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("device:", device, torch.cuda.get_device_name(0) if device == "cuda" else "")
 
@@ -66,7 +81,9 @@ def main() -> None:
     # ---- raw store (unscaled q; frozen stats applied per fold) ----
     raw, trial_ldv, trial_f = {}, {}, {}
     for trial_id, dv_path, ldv_path in pairs:
-        win = trial_to_training_pairs(dv_path, ldv_path, n_bins=5, standardize_q=False)
+        win = trial_to_training_pairs(
+            dv_path, ldv_path, n_bins=B, repr_kind=REPR, standardize_q=False
+        )
         t_raw, v_raw = parse_ldv_txt(ldv_path)
         trial_ldv[trial_id] = (t_raw, v_raw)
         trial_f[trial_id] = float(fit_mck(v_raw, 1 / float(np.median(np.diff(t_raw))))["fd"])
@@ -87,7 +104,7 @@ def main() -> None:
 
     def make_model():
         if USE_PRETRAINED:
-            enc = TimeSformerEncoder(num_frames=5)
+            enc = TimeSformerEncoder(num_frames=B_EFF)
             enc.load_kinetics_weights(url=kin_url, sha256=KINETICS_SHA256)
             return WaveformFrequencyModel(enc, 768)
         return WaveformFrequencyModel(ResNet3DEncoder(512), 512)
@@ -97,7 +114,7 @@ def main() -> None:
     try:
         probe = make_model().to(device)
         with torch.no_grad():
-            probe(torch.randn(micro, 2, 5, 224, 224, device=device))
+            probe(torch.randn(micro, 2, B_EFF, 224, 224, device=device))
         del probe
         torch.cuda.empty_cache()
     except RuntimeError:
@@ -123,18 +140,18 @@ def main() -> None:
         mu = torch.from_numpy(vx_mean).view(2, -1, 1, 1).float()
         sigma = torch.from_numpy(vx_std).view(2, -1, 1, 1).float()
 
-        def batchify(items):
+        def batchify(items, _mu=mu, _sg=sigma, _qm=q_mean, _qs=q_std):
             batches = []
             for i in range(0, len(items), micro):
                 chunk = items[i : i + micro]
                 v = torch.stack(
                     [
-                        (torch.from_numpy(voxel_to_model_input(w[1])[0]).float() - mu)
-                        / (sigma + 1e-6)
+                        (torch.from_numpy(voxel_to_model_input(w[1])[0]).float() - _mu)
+                        / (_sg + 1e-6)
                         for w in chunk
                     ]
                 )
-                q = torch.stack([torch.from_numpy((w[2] - q_mean) / (q_std + 1e-6)) for w in chunk])
+                q = torch.stack([torch.from_numpy((w[2] - _qm) / (_qs + 1e-6)) for w in chunk])
                 f = torch.tensor([trial_f[w[0]] for w in chunk], dtype=torch.float32)
                 batches.append((v, q.float(), f))
             return batches
@@ -152,7 +169,7 @@ def main() -> None:
         vm_b = batchify(windows_of(fold["val_matched"]))
         vs_b = batchify(windows_of(fold["val_shift"]))
         results = {}
-        for variant in ["data_only", "smoothness_only", "sdof_only", "both"]:
+        for variant in VARIANTS_TO_RUN:
             ckpt = f"{WORKING_DIR}/ckpts/{held}/{variant}.pt"
             res = run_fold(
                 train_b,
@@ -166,6 +183,7 @@ def main() -> None:
                 micro_batch=micro,
                 device=device,
                 ckpt_path=ckpt,
+                use_amp=USE_AMP,
             )
             results[variant] = res
             show = {
@@ -221,6 +239,9 @@ def main() -> None:
                     },
                     "mck_trial": mck_trial,
                     "micro": micro,
+                    "b": B,
+                    "repr": REPR,
+                    "use_amp": USE_AMP,
                 },
                 f,
             )
