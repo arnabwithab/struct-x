@@ -13,6 +13,7 @@ rule (O5). Sole spec: `docs/design.md` — it takes precedence over everything.
 
 ## Development Philosophy
 
+- GPU access is available preferably via remote in @SSH.md or via Kaggle free tier GPUs using Kaggle CLI
 - Design doc rules: `docs/design.md` is the sole source of truth. Never
   contradict it; if it is ambiguous, flag it rather than improvising.
 - TDD first: write the test, then the implementation. Never skip.
