@@ -36,7 +36,7 @@ PUBLIC and ready (`kaggle datasets status eros483/struct-x-beam`).
 Per run: edit the `F012 queue knobs` block in `kernel/train.py`, then:
 
 ```bash
-python3 scripts/stamp_kernel.py train && kaggle kernels push -p kernel --accelerator gpu -t 720
+python3 scripts/stamp_kernel.py train && kaggle kernels push -p kernel --accelerator gpu -t 43200  # -t is SECONDS; 720 killed two runs at ~734 s
 kaggle kernels status eros483/struct-x-train
 kaggle kernels output eros483/struct-x-train -p outputs/<run-tag>   # BEFORE session expiry
 kaggle datasets version -p data -m "<run-tag> ckpts"                 # resume/version per sec 10
