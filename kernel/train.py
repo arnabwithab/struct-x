@@ -130,17 +130,23 @@ def main() -> None:
             return WaveformFrequencyModel(enc, 768)
         return WaveformFrequencyModel(ResNet3DEncoder(512), 512)
 
-    # micro-batch probe for OOM ladder (design sec 10: start 8 on T4)
+    # micro-batch probe for OOM ladder (design sec 10: start 8 on T4).
+    # Must include backward: no-grad forward alone passes while training OOMs.
     micro = 8
-    try:
-        probe = make_model().to(device)
-        with torch.no_grad():
-            probe(torch.randn(micro, 2, B_EFF, 224, 224, device=device))
-        del probe
-        torch.cuda.empty_cache()
-    except RuntimeError:
-        micro = 4
-        torch.cuda.empty_cache()
+    for cand in (8, 4, 2):
+        try:
+            probe = make_model().to(device)
+            probe.train()
+            dummy = torch.randn(cand, 2, B_EFF, 224, 224, device=device)
+            probe(dummy)[0].pow(2).mean().backward()
+            del probe
+            torch.cuda.empty_cache()
+            micro = cand
+            break
+        except RuntimeError:
+            torch.cuda.empty_cache()
+    else:
+        raise RuntimeError("OOM even at micro-batch 2; B too large for this GPU")
     print("micro_batch:", micro, flush=True)
 
     def windows_of(ids):
