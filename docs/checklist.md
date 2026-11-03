@@ -10,7 +10,7 @@ Minimum Expectations:
 
 Expected Expectations: All minimum expectations mentioned above + include the points given below:
 
-6. [ ] At least three ML models studied, analysed, and compared. (closes via F013)
+6. [x] At least three ML models studied, analysed, and compared. (closed via F013 — ridge vs ResNet vs TimeSformer on the same Delta/se/O5 table)
 7. [x] Appropriate feature engineering and normalization.
 8. [x] Hyperparameter tuning or hyperparameter understanding
 9. [x] Detailed experimental analysis with intermediate results to explain why and how ML methods are working
@@ -26,5 +26,5 @@ Advanced Expectations: (for those who filled the Google form mentioning their pr
 16. [ ] Potential for further research, publication, or real-world deployment. (closes via F014 + report section)
 17. [ ] Reproducibility of code and results. (closes via F015)
 18. [x] GitHub repo with proper README.
-19. [ ] Website preparation with details of the project and its results. (closes via F016)
+19. [x] Website preparation with details of the project and its results. (closed via F016 — live at arnabwithab.github.io/struct-x, URL verified 200)
 20. [x] Communicate the proper technical approach, experimental findings, and limitations (more detailed information will be provided to those who apply for this category).
