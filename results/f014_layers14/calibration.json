@@ -1,0 +1,74 @@
+[
+ {
+  "tag": "pretrained_Off_set1_data_only",
+  "n": 89,
+  "pearson": NaN,
+  "spearman": NaN
+ },
+ {
+  "tag": "pretrained_Off_set1_both",
+  "n": 89,
+  "pearson": -0.17794580892389344,
+  "spearman": -0.11093609954301704
+ },
+ {
+  "tag": "pretrained_Off_set2_data_only",
+  "n": 90,
+  "pearson": 0.1905865543597973,
+  "spearman": 0.11229107098088034
+ },
+ {
+  "tag": "pretrained_Off_set2_both",
+  "n": 90,
+  "pearson": 0.19054007706443357,
+  "spearman": 0.08492602006957338
+ },
+ {
+  "tag": "pretrained_On_set3_data_only",
+  "n": 89,
+  "pearson": -0.03909758283427946,
+  "spearman": 0.007784989441615232
+ },
+ {
+  "tag": "pretrained_On_set3_both",
+  "n": 89,
+  "pearson": NaN,
+  "spearman": NaN
+ },
+ {
+  "tag": "ridge_Off_set1",
+  "n": 89,
+  "pearson": -0.40158344576028826,
+  "spearman": -0.6288900238338442
+ },
+ {
+  "tag": "ridge_Off_set2",
+  "n": 90,
+  "pearson": -0.29679542518985635,
+  "spearman": -0.6169074371321562
+ },
+ {
+  "tag": "ridge_Off_set3",
+  "n": 82,
+  "pearson": -0.496224039550482,
+  "spearman": -0.8378119524167129
+ },
+ {
+  "tag": "ridge_On_set1",
+  "n": 89,
+  "pearson": -0.23196119714202637,
+  "spearman": -0.7085631596867553
+ },
+ {
+  "tag": "ridge_On_set2",
+  "n": 89,
+  "pearson": -0.39378080336530263,
+  "spearman": -0.6747531494722507
+ },
+ {
+  "tag": "ridge_On_set3",
+  "n": 89,
+  "pearson": -0.4931269178009764,
+  "spearman": -0.7359380320054478
+ }
+]
