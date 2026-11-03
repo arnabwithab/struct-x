@@ -11,6 +11,8 @@ dependencies = [
   "torchvision>=0.29.2",
   "scikit-learn>=1.7.2",
   "matplotlib>=3.10.9",
+  "opencv-python-headless>=5.0.0.93",
+  "v2e",
 ]
 
 [dependency-groups]
@@ -25,3 +27,6 @@ target-version = "py310"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.uv.sources]
+v2e = { git = "https://github.com/SensorsINI/v2e.git" }

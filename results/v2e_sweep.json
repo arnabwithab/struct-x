@@ -1,0 +1,174 @@
+{
+  "video": "/home/arnab/code/collegeCode/struct-x/data/XJTU-DV-Beam/Supplementary materials/Video of the acquisition process.mp4",
+  "n_frames": 60,
+  "frame_shape": [
+    480,
+    270
+  ],
+  "fps": 30.0,
+  "seed": 42,
+  "device": "cpu",
+  "real": {
+    "n_events": 119515049.0,
+    "mean_rate_px_s": 1.4764335167257001,
+    "polarity_ratio": 0.8430485254592341,
+    "refr_viol_frac": 0.0,
+    "n_files": 30
+  },
+  "rows": [
+    {
+      "setting": "C0.15",
+      "params": {
+        "pos_thr": 0.15,
+        "neg_thr": 0.15,
+        "sigma_thres": 0.03,
+        "gain": 1.0
+      },
+      "synth": {
+        "n_events": 1172266,
+        "mean_rate_px_s": 4.522631172839506,
+        "polarity_ratio": 0.984463080772343,
+        "refr_viol_frac": 0.0
+      },
+      "gate": {
+        "mean_rate_px_s": {
+          "pass": false,
+          "ratio": 3.063213562686782
+        },
+        "polarity_ratio": {
+          "pass": true,
+          "ratio": 1.167741892717357
+        },
+        "refr_viol_frac": {
+          "pass": true,
+          "ratio": 1.0
+        }
+      },
+      "pass_all": false
+    },
+    {
+      "setting": "C0.30",
+      "params": {
+        "pos_thr": 0.3,
+        "neg_thr": 0.3,
+        "sigma_thres": 0.03,
+        "gain": 1.0
+      },
+      "synth": {
+        "n_events": 462150,
+        "mean_rate_px_s": 1.7829861111111112,
+        "polarity_ratio": 0.9697137596535793,
+        "refr_viol_frac": 0.0
+      },
+      "gate": {
+        "mean_rate_px_s": {
+          "pass": true,
+          "ratio": 1.2076304763557897
+        },
+        "polarity_ratio": {
+          "pass": true,
+          "ratio": 1.1502466707065846
+        },
+        "refr_viol_frac": {
+          "pass": true,
+          "ratio": 1.0
+        }
+      },
+      "pass_all": true
+    },
+    {
+      "setting": "C0.50",
+      "params": {
+        "pos_thr": 0.5,
+        "neg_thr": 0.5,
+        "sigma_thres": 0.03,
+        "gain": 1.0
+      },
+      "synth": {
+        "n_events": 226619,
+        "mean_rate_px_s": 0.8743016975308642,
+        "polarity_ratio": 0.9594227709759978,
+        "refr_viol_frac": 0.0
+      },
+      "gate": {
+        "mean_rate_px_s": {
+          "pass": true,
+          "ratio": 0.5921713965623124
+        },
+        "polarity_ratio": {
+          "pass": true,
+          "ratio": 1.1380397948663408
+        },
+        "refr_viol_frac": {
+          "pass": true,
+          "ratio": 1.0
+        }
+      },
+      "pass_all": true
+    },
+    {
+      "setting": "dim",
+      "params": {
+        "pos_thr": 0.3,
+        "neg_thr": 0.3,
+        "sigma_thres": 0.03,
+        "gain": 0.6
+      },
+      "synth": {
+        "n_events": 440432,
+        "mean_rate_px_s": 1.6991975308641976,
+        "polarity_ratio": 0.9715127261658565,
+        "refr_viol_frac": 0.0
+      },
+      "gate": {
+        "mean_rate_px_s": {
+          "pass": true,
+          "ratio": 1.1508798138317282
+        },
+        "polarity_ratio": {
+          "pass": true,
+          "ratio": 1.152380553226926
+        },
+        "refr_viol_frac": {
+          "pass": true,
+          "ratio": 1.0
+        }
+      },
+      "pass_all": true
+    },
+    {
+      "setting": "bright-noisy",
+      "params": {
+        "pos_thr": 0.3,
+        "neg_thr": 0.3,
+        "sigma_thres": 0.06,
+        "gain": 1.4
+      },
+      "synth": {
+        "n_events": 492978,
+        "mean_rate_px_s": 1.9019212962962964,
+        "polarity_ratio": 0.9719751032033025,
+        "refr_viol_frac": 0.0
+      },
+      "gate": {
+        "mean_rate_px_s": {
+          "pass": true,
+          "ratio": 1.2881862100463584
+        },
+        "polarity_ratio": {
+          "pass": true,
+          "ratio": 1.1529290116174964
+        },
+        "refr_viol_frac": {
+          "pass": true,
+          "ratio": 1.0
+        }
+      },
+      "pass_all": true
+    }
+  ],
+  "verdict": "FAIL",
+  "elapsed_s": 31.5,
+  "gpu_before": "100 %, 733 MiB",
+  "gpu_after": "100 %, 733 MiB"
+}
