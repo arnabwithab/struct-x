@@ -21,7 +21,7 @@ Advanced Expectations: (for those who filled the Google form mentioning their pr
 11. [x] Clearly defined research problem and the addressed research gap
 12. [x] Novel problem formulation or meaningful extension of an existing approach.
 13. [x] Advanced feature engineering or model optimization.
-14. [ ] Robust experimental validation. (closes via F012-6)
+14. [x] Robust experimental validation. (closed via F012-6 — bounded multi-seed, 2 folds x 2 seeds, seed swings documented)
 15. [ ] Explainability and interpretation of results. (closes via F014)
 16. [ ] Potential for further research, publication, or real-world deployment. (closes via F014 + report section)
 17. [ ] Reproducibility of code and results. (closes via F015)
