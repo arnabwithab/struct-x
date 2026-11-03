@@ -220,7 +220,10 @@ class TimeSformerEncoder(nn.Module):
         x = torch.cat([self.cls.expand(n, -1, -1), tok], dim=1)
         for blk in self.blocks:
             x = blk(x)
-        return self.head(self.norm(x[:, 0]))
+        # Mean-pool readout (not CLS): the ported CLS token never mixes with
+        # patch tokens through divided attention, so x[:, 0] is constant.
+        # Pooling keeps all Kinetics weights intact (encoder body untouched).
+        return self.head(self.norm(x[:, 1:].mean(1)))
 
     def load_kinetics_weights(self, url: str = KINETICS_URL, sha256: str = KINETICS_SHA256) -> None:
         """Fetch facebook/timesformer-base-finetuned-k400, verify SHA, map into the port.

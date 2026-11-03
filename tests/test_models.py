@@ -146,3 +146,17 @@ def test_combined_model_contract():
     assert q_hat.shape == (1, 1000) and f_hat.shape == (1,)
     assert torch.isfinite(f_hat).all() and (f_hat > 0).all()
     (q_hat.sum() + f_hat.sum()).backward()
+
+
+def test_timesformer_output_depends_on_input():
+    # Regression: the ported CLS readout never mixed with patch tokens, so the
+    # whole TimeSformer arm output input-independent constants (r~0.05 explained).
+    torch.manual_seed(0)
+    enc = TimeSformerEncoder(img_size=64, patch_size=16, num_frames=2, dim=48, depth=1, heads=4)
+    enc.eval()
+    x1 = torch.randn(2, 2, 2, 64, 64)
+    x2 = torch.randn(2, 2, 2, 64, 64)
+    with torch.no_grad():
+        z1, z2 = enc(x1), enc(x2)
+    assert z1.shape == z2.shape and z1.shape[0] == 2
+    assert not torch.allclose(z1, z2, atol=1e-6), "encoder ignores its input"

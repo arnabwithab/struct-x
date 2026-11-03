@@ -112,6 +112,16 @@ results/final_verdict*.json.)
 
 ## 5. Results — Kinetics-pretrained TimeSformer (3 folds)
 
+> **Correction 2026-11-04 — this section is VOID, kept for the record.**
+> The ported encoder's CLS readout never mixed with patch tokens
+> (`src/models/timesformer.py`: CLS split off before both attentions, head
+> read `x[:, 0]`), so every TimeSformer output below is an
+> input-independent constant (matched RMSE ≈ 2 on unit-variance data is the
+> tell; Pearson r ≈ 0.05). Fixed by mean-pool readout + an input-dependence
+> regression test. The "same endpoint as ResNet" conclusion below compared a
+> constant against a network. Rerun pending (F011/F012-2 reopened); ResNet,
+> ridge, and physics-loss findings are unaffected.
+
 | Fold | data matched | data Δ | both matched | both Δ |
 |---|---|---|---|---|
 | On_set1 (pilot) | 1.96 | −1.35 | 2.60 | −1.22 |
