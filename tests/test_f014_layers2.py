@@ -115,8 +115,8 @@ def test_occlusion_zero_on_constant_model():
     assert np.abs(got).max() == 0.0
 
 
-def test_timesformer_readout_is_input_independent():
-    """Pins the F014-2 headline: ported CLS readout never mixes patch info."""
+def test_timesformer_readout_is_input_dependent():
+    """Pins the fixed readout: mean-pool mixes patch info, outputs vary with input."""
     from models.heads import WaveformFrequencyModel
 
     enc = _tiny_encoder()
@@ -125,8 +125,8 @@ def test_timesformer_readout_is_input_independent():
     x = _toy_input()
     with torch.no_grad():
         qh, fh = model(x.float())
-    assert float((qh[0] - qh[1]).abs().max()) == 0.0
-    assert float((fh[0] - fh[1]).abs().max()) == 0.0
+    assert not torch.allclose(qh[0], qh[1], atol=1e-6)
+    assert not torch.allclose(fh[0], fh[1], atol=1e-6)
 
 
 def test_select_mixed_windows_best_worst_and_deterministic():
