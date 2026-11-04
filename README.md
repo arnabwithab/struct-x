@@ -7,7 +7,7 @@
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code_style-black-000000" alt="Code style: black" /></a>
 </p>
 
-<p align="center">Replacing laser vibrometers with event cameras</p>
+<p align="center">Physics-Aware Event Vision for Robust Non-Contact Structural Vibration Monitoring</p>
 
 ## Abstract
 
