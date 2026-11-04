@@ -1,4 +1,4 @@
-.PHONY: help setup download preprocess smoke train eval ridge test style clean kernel-smoke kernel-train kernel-timing mini-e2e
+.PHONY: help setup download preprocess smoke train eval ridge test style clean kernel-smoke kernel-train kernel-timing mini-e2e f014-layers3
 .DEFAULT_GOAL := help
 
 help: ## show targets
@@ -25,6 +25,9 @@ eval: ## TEST-trial metrics, Delta/sigma estimators, O5 verdict
 
 ridge: ## RidgeCV linear baseline, LOCO folds, same Delta/se/O5 table
 	uv run python scripts/ridge_baseline.py
+
+f014-layers3: ## F014-3 probes + latent stability (inference-only, batch-1 GPU)
+	uv run python scripts/f014_layers3.py
 
 mini-e2e: ## CPU miniature end-to-end smoke (synthetic, one fold, few epochs)
 	uv run python scripts/mini_e2e.py
