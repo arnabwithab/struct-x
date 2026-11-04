@@ -8,6 +8,7 @@ v2e-emulator smoke (downscaled, fixed seed run twice).
 import os
 
 import numpy as np
+import pytest
 
 from v2e_synth import (
     aggregate_vox_dir,
@@ -20,8 +21,12 @@ from v2e_synth import (
 
 VIDEO = "/home/arnab/code/collegeCode/struct-x/data/XJTU-DV-Beam/Supplementary materials/Video of the acquisition process.mp4"  # read-only source, never copied
 BEAM_VOX = os.path.join(os.path.dirname(__file__), "..", "beam-vox")
+needs_video = pytest.mark.skipif(
+    not os.path.exists(VIDEO), reason="beam video absent (fresh clone/CI)"
+)
 
 
+@needs_video
 def test_loader_smoke_10_frames():
     frames, fps = load_clip(VIDEO, n_frames=10, max_side=160)
     assert frames.shape[0] == 10
@@ -66,6 +71,7 @@ def test_gate_logic_realistic():
     assert within_2x(0.48, 4.8)[0] is False
 
 
+@needs_video
 def test_emulator_smoke_deterministic():
     frames, fps = load_clip(VIDEO, n_frames=5, max_side=64)
     kw = {"pos_thr": 0.3, "neg_thr": 0.3, "sigma_thres": 0.03}  # default nonzero seed
