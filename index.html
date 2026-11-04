@@ -142,20 +142,22 @@ results/final_verdict*.json.)</p>
 </figure>
 <h3>Kinetics-pretrained TimeSformer (3 folds)</h3>
 <div class="verdict">
-<p><strong>Correction 2026-11-04 — this section is VOID, kept for the record.</strong>
-The ported encoder's CLS readout never mixed with patch tokens, so every
-TimeSformer number below is an input-independent constant (fixed by mean-pool
-readout; rerun pending). ResNet, ridge, and physics-loss findings are unaffected.</p>
+<p><strong>Update 2026-11-04 — rerun on fixed code (mean-pool readout,
+SHA-gated Kaggle v2/v3 + remote JOB5/JOB6).</strong> The CLS-constant bug is
+out; the numbers below are valid — and the conclusion is unchanged: matched
+RMSE stays at constant level (~1.9–2.6), physics still loses.</p>
 </div>
 <table>
-<tr><th>Fold</th><th>data matched</th><th>data Δ</th><th>both matched</th><th>both Δ</th></tr>
-<tr><td>On_set1 (pilot)</td><td>1.96</td><td>−1.35</td><td>2.60</td><td>−1.22</td></tr>
-<tr><td>On_set2</td><td>0.62</td><td>+2.18±2.23</td><td>1.36</td><td>+1.98±2.03</td></tr>
-<tr><td>Off_set3</td><td>0.54</td><td>−0.08±0.08</td><td>0.63</td><td>−0.07±0.08</td></tr>
+<tr><th>Run (fixed code)</th><th>data matched</th><th>data valΔ</th><th>both matched</th><th>both valΔ</th></tr>
+<tr><td>On_set1 Kaggle amp v2</td><td>1.91</td><td>+0.50</td><td>2.63</td><td>+0.34</td></tr>
+<tr><td>On_set1 Kaggle surface v3</td><td>2.09</td><td>+0.29</td><td>2.61</td><td>+0.33</td></tr>
+<tr><td>On_set1 Ada B-grid (both valΔ)</td><td colspan="3">B=3/5/7/9: 0.327 / 0.332 / 0.328 / 0.330 — B irrelevant</td><td>—</td></tr>
+<tr><td>Ada JOB5 (both valΔ)</td><td colspan="3">Off_set3 −2.68, On_set1 +0.33, On_set2 +0.14</td><td>—</td></tr>
 </table>
-<p>Pretraining converges in 1–5 epochs (vs up to 39 from scratch) but lands in
-the same place: matched RMSE within noise of the control on every shared
-fold. No robustness gain either.</p>
+<p>Training still collapses in 1–11 epochs to near-constant output; pretraining
+only changes the starting point, not the endpoint. Frequency is captured
+(both: rel-freq err 0.02) but amplitude is blown (RMSE 2.63) — exactly what
+amplitude-blind physics predicts. No robustness gain anywhere.</p>
 <figure>
 <img src="figs/pretrained_vs_control.png" alt="Pretrained TimeSformer vs ResNet control matched RMSE comparison">
 <figcaption>Pretrained vs control. Source: results/figs/pretrained_vs_control.png</figcaption>
