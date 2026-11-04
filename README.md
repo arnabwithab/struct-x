@@ -7,7 +7,7 @@
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code_style-black-000000" alt="Code style: black" /></a>
 </p>
 
-<p align="center">Replacing event cameras with laser vibrometers</p>
+<p align="center">Replacing laser vibrometers with event cameras</p>
 
 ## Abstract
 
@@ -15,7 +15,7 @@ Event cameras watch vibration as a flicker of pixels. Struct-X turns that flicke
 
 To help it, we add a "physics term". This is a penalty that nudges the prediction to ring down like a simple spring-mass-damper (a single damped sine wave) instead of wiggling arbitrarily.
 
-Tested on 30 hammer hits. We train on one lighting setup and test on another, and measure the performance drop "Δ" i.e how much worse the waveform gets under new conditions. The physics term only helps if it shrinks Δ beyond hit-to-hit variation.
+Tested on 30 hammer hits. We train on one lighting setup and test on another, and measure the performance drop "Δ" i.e, how much worse the waveform gets under new conditions. The physics term only helps if it shrinks Δ beyond hit-to-hit variation.
 
 The methodology is applied to three models, a baseline RidgeCV, a 3D-ResNet and a space-time TimeSformer.
 
@@ -23,13 +23,10 @@ The methodology is applied to three models, a baseline RidgeCV, a 3D-ResNet and 
 
 ### Physics term ablations
 
-We tested on combinations of encoders and held out data.
-
-On all 8 checks, the drop in Δ is essentially noise and variance among trials, while making same-lighting accuracy slightly worse (+0.1 to +0.5 RMSE).
+On all 6 checks, the Δ reduction sits inside trial-to-trial noise, while making same-lighting accuracy slightly worse (+0.1 to +0.5 RMSE).
 
 ![O5 forest: physics Δ reduction vs trial-to-trial noise](results/figs/o5_forest.png)
 
-Full numbers in `results/final_verdict.json`.
 
 ### Model performance ablations
 
