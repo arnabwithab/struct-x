@@ -106,34 +106,44 @@ for the TimeSformer-Base pretrained model, both on the 4500 Ada — comfortably
 under the 50 ms soft bar. (Per-variant, per-fold latencies in
 results/final_verdict*.json.)
 
-![O5 forest](figs/o5_forest.png)
+![O5 forest](../results/figs/o5_forest.png)
 
-![Matched RMSE](figs/matched_rmse.png)
+![Matched RMSE](../results/figs/matched_rmse.png)
 
-## 5. Results — Kinetics-pretrained TimeSformer (3 folds)
+## 5. Results — Kinetics-pretrained TimeSformer, fixed code (all 6 conditions)
 
-> **Correction 2026-11-04 — this section is VOID, kept for the record.**
-> The ported encoder's CLS readout never mixed with patch tokens
-> (`src/models/timesformer.py`: CLS split off before both attentions, head
-> read `x[:, 0]`), so every TimeSformer output below is an
-> input-independent constant (matched RMSE ≈ 2 on unit-variance data is the
-> tell; Pearson r ≈ 0.05). Fixed by mean-pool readout + an input-dependence
-> regression test. The "same endpoint as ResNet" conclusion below compared a
-> constant against a network. Rerun pending (F011/F012-2 reopened); ResNet,
-> ridge, and physics-loss findings are unaffected.
+> An earlier version of this section is VOID and removed: the ported
+> encoder's CLS readout never mixed with patch tokens, so every number in
+> it was an input-independent constant. Fixed by mean-pool readout
+> (`src/models/timesformer.py`) + input-dependence regression test. All
+> numbers below train and evaluate with the fix; Kaggle runs are
+> SHA-gated (`STRUCTX_SHA` fail-fast in `kernel/train.py`).
 
-| Fold | data matched | data Δ | both matched | both Δ |
+| Fold / run | data valΔ (ep) | both valΔ (ep) | data matched | both matched |
 |---|---|---|---|---|
-| On_set1 (pilot) | 1.96 | −1.35 | 2.60 | −1.22 |
-| On_set2 | 0.62 | +2.18±2.23 | 1.36 | +1.98±2.03 |
-| Off_set3 | 0.54 | −0.08±0.08 | 0.63 | −0.07±0.08 |
+| Off_set3, JOB5 Ada | -3.05 (2/15) | -2.68 (1/11) | — | — |
+| On_set1, JOB5 Ada | +0.49 (1/11) | +0.33 (5/25) | — | 2.63* |
+| On_set2, JOB5 Ada | +0.18 (11/21) | +0.14 (3/20) | — | — |
+| On_set1, Kaggle amp v2 | +0.50 (1/11) | +0.34 (6/22) | 1.91±3.50 | 2.63±3.24 |
+| On_set1, Kaggle surface v3 | +0.29 (1/13) | +0.33 (6/23) | 2.09 | 2.61 |
+| B-grid Ada, On_set1 both | — | B=3/5/7/9: 0.327/0.332/0.328/0.330 | — | — |
 
-Pretraining converges in 1–5 epochs (vs up to 39 from scratch) but lands in
-the same place: matched RMSE within noise of the control on every shared
-fold. No robustness gain either.
+(ep = epochs-to-target/epochs-run. *On_set1 `both` matched RMSE from the
+Kaggle arm, same fold. v2/v3 SHA-gated fixed code. Full per-fold JSONs:
+`results/results_JOB*.json`, `results/amp_On_set1.json`,
+`results/surface_On_set1.json`.)
 
-![Pretrained vs control](figs/pretrained_vs_control.png)
+Pretraining still converges in 1–11 epochs but lands at near-constant
+output: matched RMSE stays 1.9–2.6 (ridge: 0.29–0.66), i.e. no robustness
+gain from the Kinetics init. The one real signal: `both` nails relative
+frequency (err 0.02) while blowing amplitude (RMSE 2.63) — amplitude-blind
+physics with weak `L_LDV` anchoring on matched trials. B/AMP/representation
+are valid nulls (see §11 T3).
 
+![Pretrained vs control](../results/figs/pretrained_vs_control.png)
+
+*Figure note: the curve above predates the fix (pilot data); the table is
+authoritative. Figure regen needs a verdict-JSON rebuild (deferred).*
 ## 6. Verdict
 
 **O5: non-identifiable on all 8 backbone×fold settings.** Largest |R| is

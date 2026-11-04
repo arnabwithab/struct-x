@@ -777,3 +777,39 @@ new implementation is required — this is a report section, roughly one page.
 - [ ] §15b event-camera usage survey with per-use teaching rows in the paper.
 - [ ] Kaggle dataset AND all kernels PUBLIC (`-u` flag, `"is_private": "false"`).
 - [ ] No window-level split, no damage-classification claim, no joint attention, no unnormalised physics loss, no outside-file references.
+
+## 17. As-built record — 2026-11-04 (what actually happened; append-only)
+
+Spec above is the plan; this section is the ground truth of execution.
+Checklist 20/20 closed; tag `frozen-2026-11-04`; CI green; site live.
+
+- **CLS bug saga.** The ported TimeSformer readout (`x[:, 0]`) never mixed
+  with patch tokens — every TimeSformer number before the fix was an
+  input-independent constant (matched RMSE ≈ 2). Fixed by mean-pool
+  readout + input-dependence regression test (`tests/test_models.py`).
+  All pre-fix TimeSformer verdicts (B-grid, AMP, surface, 6 ckpts) were
+  declared VOID, none cited as findings.
+- **Stale-clone incident.** Kaggle amp v1 trained on pre-fix code (clone
+  raced the push; `origin/main=45a86d4` in run artefacts; metrics identical
+  to void). Void, recorded. Fix: `kernel/train.py` asserts the cloned
+  commit matches baked `STRUCTX_SHA` and fail-fasts otherwise (v2/v3
+  SHA-gated, verified in run logs).
+- **Valid numbers (all fixed code).** Ada JOB5 (Off_set3 −3.05/−2.68,
+  On_set1 +0.49/+0.33, On_set2 +0.18/+0.14 valΔ, data/both); Ada JOB6
+  B-grid both-valΔ 0.327/0.332/0.328/0.330 (B irrelevant); Kaggle amp v2
+  (On_set1: data 1.91/+0.50, both 2.63/+0.34, freq err 0.02); surface v3
+  (data 2.09/+0.29, both 2.61/+0.33; representation irrelevant).
+- **Deviations from plan.** JOB7 (remote AMP+surface) skipped — Kaggle
+  already delivered both comparisons on fixed code, each internally
+  same-hardware; amp/surface attribution dropped from JOB8 scope (verdicts
+  stand on committed nulls; ckpts retained). Layers2 full rerun blocked by
+  design (needs 4-variant v8; F014 premise is zero new training) — code
+  integrated, pre-fix maps kept as diagnostic bounds only.
+- **Explainability (F014).** Probes on fixed latents: fn undecodable
+  (R²≈−0.2), envelope slope decodable (R² 0.51–0.57); cross-condition
+  cosine≈1.0, CKA≈0.04. Taxonomy T1–T4 + deployment mapping in
+  `docs/results.md` §11. Deployable bar: ridge (CPU seconds).
+- **Reproducibility (F015).** Determinism limits documented (report §10.1);
+  checkpoint index; CPU mini-e2e; CI fixed for fresh clones (video-gated
+  v2e tests); frozen tag pushed. Pretrained_vs_control figure still shows
+  pilot data (regen deferred — table authoritative).

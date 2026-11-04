@@ -1,4 +1,4 @@
-"""Figures for results/report.md (Agg backend).
+"""Figures for docs/results.md (Agg backend).
 
 Run: uv run --with matplotlib python scripts/make_figures.py
 """
