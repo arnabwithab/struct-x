@@ -8,18 +8,35 @@
 </p>
 
 <p align="center">Event cameras watch vibration as a flicker of pixels. Struct-X turns
-that flicker into the waveform a laser vibrometer would have recorded — and
-stays accurate when lighting or camera settings change.</p>
+that flicker into the waveform a collocated laser Doppler vibrometer (LDV) would
+have recorded — and measures whether it stays accurate when lighting or camera
+settings drift.</p>
 
-## What it does
+## Abstract
 
-- Rebuilds the vibration waveform and its dominant frequency from an event
-  stream, matching what a collocated laser vibrometer measures.
-- Holds that accuracy steady across illumination and threshold shifts instead
-  of degrading silently.
-- Learns from only 30 hammer-impact trials, split trial-wise so nothing leaks.
-- Tests whether a physics residual is what actually helps, with a
-  pre-registered rule that also accepts "no measurable effect" as the answer.
+Reconstruct LDV displacement waveforms and dominant frequency from event streams
+on 30 hammer-impact trials (XJTU-DV-Beam), under a pre-registered robustness
+protocol: trial-level leave-one-condition-out splits, `Δ = M(shifted) − M(matched)`,
+and an O5 falsification rule that accepts "no measurable effect" as the answer.
+Full method and analysis live in the report, not here.
+
+## Key result
+
+**O5: non-identifiable on all 8 backbone×fold settings** — the SDOF physics
+residual does not clear trial-to-trial noise anywhere, and costs +0.1 to +0.5
+matched RMSE on most folds. ResNet control (test mean ± std, `results/final_verdict.json`):
+
+| Fold | data matched | data Δ | both matched | both Δ |
+|---|---|---|---|---|
+| On_set1 | 1.98±3.10 | −1.65 | 2.39±2.85 | −1.61 |
+| Off_set1 | 1.95±2.80 | −1.49 | 2.39±2.55 | −1.33 |
+| Off_set2 | 2.43±3.43 | −1.79 | 2.53±3.21 | −1.58 |
+| Off_set3 | 0.37±0.07 | −0.07 | 0.63±0.10 | −0.02 |
+| On_set2 | 0.52±0.10 | +2.23 | 0.99±0.21 | +1.98 |
+| On_set3 | 0.47±0.10 | −0.23 | 0.37±0.07 | +0.20 |
+
+RidgeCV on pooled voxels still beats deep models on RMSE (0.29–0.66, `results/ridge_verdict.json`)
+with Pearson r ≈ 0.2 on both sides — shape is unreconstructed everywhere (deep r 0.03–0.19 matched).
 
 ## Quickstart
 
@@ -27,13 +44,24 @@ stays accurate when lighting or camera settings change.</p>
 git clone https://github.com/arnabwithab/struct-x.git
 cd struct-x
 make setup       # install uv (if needed) + dependencies
-make download    # fetch the vibration dataset, verify checksum
-make preprocess  # build voxel store + window index
-make train       # leave-one-condition-out training, all ablations
-make eval        # test-trial metrics and robustness verdict
+make download    # fetch XJTU-DV-Beam.zip, verify md5, print inventory
+make preprocess  # build voxel store + window index (trial-level, no leakage)
+make train       # LOCO training, all O4 ablations
+make eval        # test-trial metrics, Δ/se estimators, O5 verdict
+make test        # unit tests (required before any claim)
 ```
 
-## Data
+Reproducibility: frozen tag `frozen-2026-11-04`, seeds + trial IDs + `m,c,k` + checkpoint SHA logged per run, `make mini-e2e` for a CPU smoke run.
 
-Vibration data from the XJTU-DV open-source dataset (Xi'an Jiaotong
-University), via Zenodo record 17447083.
+## License fence
+
+Repo code is MIT, but the ported TimeSformer is **CC-NC 4.0, research-only**.
+Any deployment path uses the ResNet control or Ridge baseline, never ported
+TimeSformer weights.
+
+## Links
+
+- Project site: https://arnabwithab.github.io/struct-x/
+- Full report: [docs/results.md](docs/results.md)
+- Design doc (sole source of truth): [docs/design.md](docs/design.md)
+- Data: XJTU-DV-Beam, Zenodo record [17447083](https://zenodo.org/records/17447083) (CC-BY-4.0)
