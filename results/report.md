@@ -197,9 +197,13 @@ with no compute saving and no robustness gain.
 
 ## 9. Gaps and what remains
 
-- B=5–9 ablation never run (B=5 everywhere); time-surface fallback built but
-  never compared head-to-head; AMP code ready but never run for comparison.
-- Pretrained comparison covers 3 of 6 folds (quota; conclusion stable).
+- B-grid now DONE on fixed code (B=3/5/7/9 valΔ 0.327–0.332 — B
+  irrelevant); time-surface compared head-to-head (representation
+  irrelevant); AMP compared (AMP≈fp32). All three were void pre-fix
+  nulls; all three are now valid nulls (Kaggle v2/v3 SHA-gated + remote
+  JOB6).
+- Pretrained coverage now all 6 conditions: F012-2 redo (Off_set1,
+  Off_set2, On_set3) + JOB5 (Off_set3, On_set1, On_set2).
 - Test sets of 5 trials are too small to bound Δ — the single biggest
   methodological weakness; more trials (or more conditions) is the fix.
 - Novelty assessed: pipeline ✓, fusion ✓, Δ defined+measured ✓, collapse
@@ -241,3 +245,41 @@ last flag, which is why it stays opt-in, not default. Checkpoints therefore
 ship with the index manifest (fold/variant/seed per file, via
 scripts/checkpoint_index.py) instead of a bitwise-reproducibility promise the
 hardware cannot keep.
+
+## 11. Failure-mode taxonomy + what each finding buys (F014-5)
+
+All numbers below are on fixed (mean-pool) code unless noted. Bottom line
+up front: the deep path fails the same way everywhere, and each failure
+mode points at exactly one next experiment.
+
+- **T1 — constant-collapse training.** `data_only` best epoch 1–6 on every
+  fixed-code run (JOB5, Kaggle amp v2/surface v3); matched RMSE 1.9–2.6
+  against ridge's 0.29–0.66. The head converges to near-constant output
+  almost immediately. *Deployment:* the deep path is not deployable; ridge
+  (CPU seconds) is the standing bar. *Next:* head-capacity/optimization
+  study — why epoch-1 collapse (init scale, loss landscape, feature rank).
+- **T2 — frequency without amplitude.** `both` nails relative frequency
+  (err 0.02, amp v2) yet matched RMSE 2.63: right oscillation, wrong scale.
+  Exactly what amplitude-blind `L_phys` predicts when `L_LDV` anchoring is
+  weak on matched trials. *Next:* amplitude-anchored loss or two-stage
+  (frequency then scale) fitting.
+- **T3 — resolution/representation/precision irrelevance (valid nulls).**
+  B-grid valΔ 0.327/0.332/0.328/0.330 (B=3/5/7/9, Ada, fixed code);
+  surface≈voxel (0.33 vs 0.34, T4); AMP≈fp32 (0.34 vs 0.33, T4). Three
+  independent nulls, two hardwares. *Next:* none — closed, do not spend
+  compute here.
+- **T4 — latent poverty.** Probes on fixed `both` latents (On_set1, 66
+  test windows): natural frequency undecodable (R² ≈ −0.2 ≈ shuffled),
+  envelope slope decodable (R² 0.51–0.57 vs shuffled ≈ 0). Cross-condition
+  stability: cosine ≈ 1.0, CKA ≈ 0.03–0.05 — same direction, different
+  structure. The encoder sees envelope energy, not oscillation.
+  *Next:* frequency-aware pretraining or spectral input features.
+- **Attribution status (honest).** F014-2 code is integrated, but the full
+  rerun is blocked by design: layers2 hardcodes 4-variant v8 ckpts and no
+  campaign trains `smoothness_only`/`sdof_only` (F014 premise is zero new
+  training). Pre-fix maps are retained as diagnostic bounds only, not
+  findings. Unlocking it costs one full-grid single-fold run.
+
+*Deployment mapping:* ridge now; LDV stays ground truth; the event-camera
+path ships only after T1 is fixed, with T2's amplitude anchoring as the
+acceptance test and T4's fn-decodability as the representation gate.

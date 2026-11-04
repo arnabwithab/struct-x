@@ -1,0 +1,210 @@
+{
+  "b3": {
+    "arch": "ts",
+    "held": "On_set1",
+    "rows": [
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_value",
+        "score": -0.16520384152947898,
+        "shuffled": -0.0674944222200975
+      },
+      {
+        "chance": 0.5,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_bin",
+        "score": 0.24242424242424243,
+        "shuffled": 0.16666666666666666
+      },
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope",
+        "score": 0.5053318428761147,
+        "shuffled": -0.036590532966269684
+      },
+      {
+        "chance": 0.8181818181818182,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope_sign",
+        "score": 0.8181818181818182,
+        "shuffled": 0.8181818181818182
+      },
+      {
+        "chance": 0.8333333333333334,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "shift",
+        "score": 0.8333333333333334,
+        "shuffled": 0.8333333333333334
+      }
+    ],
+    "variant": "both"
+  },
+  "b7": {
+    "arch": "ts",
+    "held": "On_set1",
+    "rows": [
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_value",
+        "score": -0.20059127103105645,
+        "shuffled": -0.07567385033678264
+      },
+      {
+        "chance": 0.5,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_bin",
+        "score": 0.3484848484848485,
+        "shuffled": 0.18181818181818182
+      },
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope",
+        "score": 0.5726792207713057,
+        "shuffled": -0.023606070202894847
+      },
+      {
+        "chance": 0.8181818181818182,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope_sign",
+        "score": 0.8181818181818182,
+        "shuffled": 0.8181818181818182
+      },
+      {
+        "chance": 0.8333333333333334,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "shift",
+        "score": 0.8333333333333334,
+        "shuffled": 0.8333333333333334
+      }
+    ],
+    "variant": "both"
+  },
+  "b9": {
+    "arch": "ts",
+    "held": "On_set1",
+    "rows": [
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_value",
+        "score": -0.19274820438759743,
+        "shuffled": -0.06978207073582743
+      },
+      {
+        "chance": 0.5,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_bin",
+        "score": 0.22727272727272727,
+        "shuffled": 0.16666666666666666
+      },
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope",
+        "score": 0.5314980204629858,
+        "shuffled": -0.04539959738460797
+      },
+      {
+        "chance": 0.8181818181818182,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope_sign",
+        "score": 0.8181818181818182,
+        "shuffled": 0.8181818181818182
+      },
+      {
+        "chance": 0.8333333333333334,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "shift",
+        "score": 0.8333333333333334,
+        "shuffled": 0.8333333333333334
+      }
+    ],
+    "variant": "both"
+  },
+  "v8": {
+    "arch": "ts",
+    "held": "On_set1",
+    "rows": [
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_value",
+        "score": -0.2559267168951649,
+        "shuffled": -0.07761014947359568
+      },
+      {
+        "chance": 0.5,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "fn_bin",
+        "score": 0.21212121212121213,
+        "shuffled": 0.16666666666666666
+      },
+      {
+        "chance": 0.0,
+        "kind": "r2",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope",
+        "score": 0.5484226627974964,
+        "shuffled": -0.036343613499176586
+      },
+      {
+        "chance": 0.8181818181818182,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "slope_sign",
+        "score": 0.8181818181818182,
+        "shuffled": 0.8181818181818182
+      },
+      {
+        "chance": 0.8333333333333334,
+        "kind": "accuracy",
+        "n_test": 66,
+        "n_train": 260,
+        "probe": "shift",
+        "score": 0.8333333333333334,
+        "shuffled": 0.8333333333333334
+      }
+    ],
+    "variant": "both"
+  }
+}
