@@ -16,6 +16,9 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", 
 os.makedirs(OUT, exist_ok=True)
 
 FOLDS = ["On_set1", "Off_set1", "Off_set2", "Off_set3", "On_set2", "On_set3"]
+# Human-readable fold labels; On/Off is the archive's illumination flag.
+LABELS = ["Light on · set 1", "Light off · set 1", "Light off · set 2",
+          "Light off · set 3", "Light on · set 2", "Light on · set 3"]
 
 
 def load(path):
@@ -37,9 +40,8 @@ def main():
         ax.errorbar(r, i, xerr=s, fmt="o", capsize=4, label="R +/- sigma_R" if i == 0 else "")
     ax.axvline(0, color="k", lw=1)
     ax.set_yticks(range(len(FOLDS)))
-    ax.set_yticklabels(FOLDS)
+    ax.set_yticklabels(LABELS)
     ax.set_xlabel("R = Delta_base - Delta_phys (RMSE)")
-    ax.set_title("O5 falsification: no fold clears the noise bar")
     ax.legend()
     fig.tight_layout()
     fig.savefig(f"{OUT}/o5_forest.png", dpi=120)
