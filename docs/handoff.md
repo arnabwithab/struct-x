@@ -1,87 +1,86 @@
-# Struct-X handoff — 2026-11-04 (morning, IST)
+# Struct-X handoff — 2026-11-04 (~09:10 IST / 03:40 UTC)
 
-Session left in a clean, idle state. Nothing is running anywhere (verified:
-local GPU 0 procs, remote queue gated-idle, Kaggle COMPLETE, no background
-watches alive). Every result below is committed and pushed to `main`.
+Session is ACTIVE — nothing is finished. Two GPU lanes + three watchers running.
+Everything below is committed and pushed to `main` (`cc05c54` + this handoff).
 
-## Headline findings (all new since the last checkpoint)
+## What changed since the morning handoff
 
-1. **TimeSformer arm was void (CLS bug, now fixed).** The ported encoder's CLS
-   token never mixed with patch tokens (`src/models/timesformer.py`), so every
-   TimeSformer output was an input-independent constant (matched RMSE ≈ 2 on
-   unit-variance data = the constant predictor; r ≈ 0.05). Fixed by mean-pool
-   readout + an input-dependence regression test (`tests/test_models.py`).
-   Full suite: **152 passed, 7 skipped**, black+ruff clean.
-2. **First VALID pretrained numbers exist** (remote F012-2 redo, 6/6, fixed
-   code): Off_set1 +0.20/+0.33, Off_set2 −1.05/−0.19, On_set3 −0.69/−0.12
-   (data Δ / both Δ). Physics loses on all three folds — a real negative,
-   not an artifact. B-grid/AMP/surface Kaggle verdicts are VOID (old code)
-   and must be rerun; their "null" pattern is unclaimed until then.
-3. **Ridge is the standing bar** (F013, `make ridge`, 9 s): matched RMSE
-   0.29–0.66 beats deep `data_only` every fold; r ≈ 0.2 both sides.
-   `L_phys` carries no usable per-window uncertainty (null on pretrained,
-   anti-correlated on ridge, F014-4).
-4. **B-grid so far (void, for the record)**: B=3/5/7/9 valΔ identical to 4
-   decimals — exactly what constant predictors produce. No conclusion drawn.
+1. **F014-2/3 integrated to main** (`c4d6054`, `ef8d1af`, fix `cc05c54`).
+   Merged `feat/f014-2-attr` + `feat/f014-3-probe`, added `f014-layers2`
+   Makefile target. Full suite: **171 passed, 7 skipped**, green.
+2. **Stale-test contradiction found and fixed.** `test_timesformer_readout_is_
+   input_independent` pinned the old CLS-constant bug and contradicted the
+   mean-pool fix — renamed/flipped to `..._is_input_dependent` (same
+   fixture). Stale CLS-never-mixes prose remains in layers2 headers
+   (`src/f014_layers2.py`, `scripts/f014_layers2.py`); left intact, JOB8
+   rerun refreshes the evidence.
+3. **Remote queue JOB5–8 staged, hardened, running.** Runner backed up
+   (`run_queue.sh.bak.2026-11-04` + `.bak2.0327`), `bash -n` clean. JOB8
+   patched to skip missing `smoothness/sdof` variants (exit 0, no watchdog
+   retry loop). JOB5 started 03:24:59 UTC, GPU at 100%.
+4. **Kaggle amp-redo v1 pushed under `eros438/struct-x-train`** (fresh
+   account, GPU, `-t 43200`, PUBLIC), RUNNING since 02:42 UTC. Fix
+   containment verified: kernel clones `origin/main`, which has the
+   mean-pool fix. Surface redo follows on COMPLETE. Staged in
+   `/tmp/opencode/kp-amp/`; `kernel/` committed files untouched.
+5. **Watchers (all detached, read-only):** `scripts/poll_kaggle.sh` (pid
+   803351 → `~/sx-poll-kaggle.log`), `scripts/poll_remote.sh` (pid 803418 →
+   `~/sx-poll-remote.log`) — 60 s ticks ×45, then 30-min ticks; exit +
+   notify on COMPLETE/ERROR/DONE_JOB8. Supervisor loop
+   `scripts/nightly_watch.sh` every 14 min (pid 803909 →
+   `/tmp/opencode/nwatch.log`). Remote cron verified active (2 entries).
 
-## Feature state (see `docs/features.json`, synced 2026-11-04)
+## Feature state (see `docs/features.json`, synced 03:40 UTC)
 
-- Done: F000–F010, F013, F016 (site live), F017 (CI green), F018 (v2e sweep,
-  gate FAIL reported as-is). Checklist 6, 14, 19 closed.
-- In progress: **F011** (TimeSformer arm — fix landed, rerun owed),
-  **F012** (F012-1 metrics ✓, F012-2 redone valid ✓, F012-6 ✓; B/AMP/surface
-  redos owed).
-- Planned: F014 (1+4 done; 2/3 staged in worktrees, 5 = report section),
-  F015 (1–4 done; 5 = frozen tag, blocked on F012–F014), F019 (Box 404,
-  blocked on owner re-share — do not touch).
+- Done: F000–F010, F013, F016, F017, F018. F014-2/3 code done (rerun owed).
+- In progress: **F011** (F011-2 = JOB5 running), **F012** (F012-2 = JOB5
+  running; F012-3 = JOB6 queued; F012-4 = JOB7 queued; F012-5 code done,
+  comparison = JOB7 queued; F012-6 done).
+- Planned: F014-5 (report section), F015-5 (frozen tag), F019 (Box 404 —
+  do not touch).
 
 ## Machine / infra state
 
-- **Local 4060**: idle. Worktrees: `wt-f014-attr` (F014-2: rollout + bounded
-  IG/occlusion + variant spectra; ran on constants — diagnostic evidence),
-  `wt-f014-probe` (F014-3: probes + CKA, `stability.md` present),
-  `wt-f018-v2e` (done, merged). Nothing running; integrate F014-2/3 next.
-- **Remote cselab11-41** (`snu@100.112.181.46`): idle, DONE_F012-2 +
-  DONE_F012-6 + valid redo ckpts in `/var/tmp/sx-ckpt/F012-2-redo/`.
-  Sleep masked (all 4 targets + GNOME idle off). Cron: `@reboot` + `*/15`
-  queue runner (currently gated-idle on missing GO_F014 — correct).
-  `/home` is 100% full; checkpoints live in `/var/tmp` (33G free).
-  Stale `@reboot …/arnab/structx-run.sh` removed (backup `~/cron.bak.*`).
-- **Kaggle**: auth = OAuth `~/.kaggle/credentials.json` (expires — if calls
-  fail with "Authentication required", re-login; `-t` flag is SECONDS,
-  `-t 720` killed two runs at ~734 s; use `-t 43200`). Last state: train
-  kernel COMPLETE (old-code b9). Queue script: `scripts/nightly_watch.sh`
-  (committed, currently NOT looping — relaunch after deciding redos).
-  Datasets PUBLIC: `eros483/struct-x-beam`, `eros483/struct-x-vox`
-  (CC-BY-4.0). Checkpoints: local `outputs/{b3,b7,b9,amp,surface}/ckpts`
-  (old code); valid remote ckpts NOT exfiltrated (no longer needed locally —
-  F014-2/3 run here).
-- **CI**: green on `main`; runs full suite (torchvision pinned).
+- **Local 4060**: effectively idle (pollers + supervisor are seconds/tick).
+  Constraint stands: no local compute >30 min.
+- **Remote cselab11-41** (`snu@100.112.181.46`): BUSY — JOB5 training.
+  Expected chain (serial): JOB5 ≈11:00 → JOB6 ≈13:30 → JOB7 ≈15:00 →
+  JOB8 ≈16:00 IST. `/home` still 100% full; ckpts → `/var/tmp/sx-ckpt`.
+  Queue log: `~/sx-queue/logs/queue.log`; per-job logs `JOB{5..8}*.log`.
+- **Kaggle** (active auth: `eros438`; old slugs under `eros483`): amp v1
+  RUNNING, COMPLETE expected ≈09:30–11:30 IST → surface push + run
+  (≈12:30–14:30). Datasets: PUBLIC `eros483/struct-x-beam` (cross-account
+  readable; no `struct-x-vox` referenced anywhere — does not exist).
+  `nightly_watch.sh` still points at the old `eros483` slug — its Kaggle
+  leg is informational only until the slug is updated.
+- **CI**: green through `cc05c54`.
 
-## Ordered next steps
+## Triggers (nothing else to launch — react only)
 
-1. Integrate F014-2 + F014-3 from worktrees (review, merge to main, push).
-2. Decide Kaggle redo scope (full B/AMP/surface ≈ 12h T4 vs B=5 + B=7 +
-   amp + surface ≈ 8h) and push b3-redo with the fixed code.
-3. F014-5 report section (taxonomy + future-work/deployment mapping).
-4. F015-5 frozen tag → closes checklist 17. 5. GO_F014 + JOB3 when
-   cross-ckpt work needs the server again (optional).
-6. F019 only if the Box link is re-shared.
+1. Amp COMPLETE → validate `results_On_set1.json` (RMSE ≠ ~2), push
+   surface redo (same knobs, `REPR=timesurface`, `USE_AMP=0`).
+2. ERROR/CANCEL anywhere → pull logs, diagnose, report.
+3. DONE_JOB8 → exfiltrate results JSONs, F014-5 report section, F015-5
+   frozen tag, site figs refresh, push.
+4. Pollers auto-relax to 30-min ticks ≈09:45 IST.
 
 ## Resume commands
 
 ```bash
-git log --oneline -3                                  # where main is
-ls ~/sx-queue/DONE_* 2>/dev/null                      # remote: ssh snu@100.112.181.46 '...'
-kaggle kernels status eros483/struct-x-train          # kaggle (re-auth if 401)
-nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader   # local 4060
+git log --oneline -3                                    # main = cc05c54+
+tail -2 ~/sx-poll-kaggle.log ~/sx-poll-remote.log       # watcher state
+tail -3 /tmp/opencode/nwatch.log | cut -c1-160          # supervisor tick
+kaggle kernels status eros438/struct-x-train            # amp redo
+ssh snu@100.112.181.46 'ls ~/sx-queue/ | grep DONE; tail -1 ~/sx-queue/logs/queue.log | cut -c1-120'
 ```
 
 ## Open risks / decisions for the human
 
-- Kaggle redo quota: ~12h T4 for the full grid; confirm budget before firing.
-- F014-2 Stage A ran on constants: keep as diagnostic or rerun post-fix
-  (cheap on 4060 now that the code is fixed — recommend rerun, 1–2h).
-- `/home` on the remote is full: do not write checkpoints there; the
-  `~/sx-ckpt` symlinks already point at `/var/tmp` — do not "fix" them.
-- F019 is dead until the Box owner re-shares; F018 is fully done.
+- Kaggle logs were empty at ~50 min RUNNING — likely API lag; poller
+  confirms or flags by ≈09:45 IST.
+- JOB8 runs layers2 Stage A only if `smoothness/sdof` ckpts existed (they
+  don't) — skips with exit 0 by design; Stage-A nulls stay pre-fix
+  diagnostic evidence, not findings.
+- F014 outputs land on remote `/home` (1.8G free) — should fit; poller
+  flags disk errors.
+- F019 dead until Box re-share; no action.
