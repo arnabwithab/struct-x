@@ -29,6 +29,7 @@ VARIANTS_TO_RUN = [
 USE_PRETRAINED = True
 ENCODER = os.environ.get("STRUCTX_ENCODER", "timesformer")  # resnet = control path
 assert ENCODER in ("resnet", "timesformer"), f"bad STRUCTX_ENCODER={ENCODER}"
+STRUCTX_SHA = os.environ.get("STRUCTX_SHA", "")  # baked per push; fail-fast if clone is stale
 USE_PRETRAINED = ENCODER == "timesformer"
 KNOWN_VARIANTS = ("data_only", "smoothness_only", "sdof_only", "both")
 B_EFF = 1 if REPR == "timesurface" else B  # surface (2,H,W) -> single-frame (2,1,224,224)
@@ -70,6 +71,10 @@ def main() -> None:
     print(
         sh(f"git clone -q https://github.com/arnabwithab/struct-x.git {WORKING_DIR}/structx-repo")
     )
+    sha = sh(f"git -C {WORKING_DIR}/structx-repo rev-parse HEAD").strip()
+    print(f"structx-repo HEAD: {sha}")
+    if STRUCTX_SHA and sha != STRUCTX_SHA:
+        raise SystemExit(f"stale clone: {sha} != STRUCTX_SHA={STRUCTX_SHA}")
     sys.path.insert(0, f"{WORKING_DIR}/structx-repo/src")
     print(
         f"B={B} frames={B_EFF} repr={REPR} amp={USE_AMP} folds={FOLDS_TO_RUN} variants={VARIANTS_TO_RUN}"
