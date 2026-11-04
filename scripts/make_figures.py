@@ -17,8 +17,14 @@ os.makedirs(OUT, exist_ok=True)
 
 FOLDS = ["On_set1", "Off_set1", "Off_set2", "Off_set3", "On_set2", "On_set3"]
 # Human-readable fold labels; On/Off is the archive's illumination flag.
-LABELS = ["Light on · set 1", "Light off · set 1", "Light off · set 2",
-          "Light off · set 3", "Light on · set 2", "Light on · set 3"]
+LABELS = [
+    "Light on · set 1",
+    "Light off · set 1",
+    "Light off · set 2",
+    "Light off · set 3",
+    "Light on · set 2",
+    "Light on · set 3",
+]
 
 
 def load(path):
