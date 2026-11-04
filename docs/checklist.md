@@ -22,7 +22,7 @@ Advanced Expectations: (for those who filled the Google form mentioning their pr
 12. [x] Novel problem formulation or meaningful extension of an existing approach.
 13. [x] Advanced feature engineering or model optimization.
 14. [x] Robust experimental validation. (closed via F012-6 — bounded multi-seed, 2 folds x 2 seeds, seed swings documented)
-15. [ ] Explainability and interpretation of results. (closes via F014 — JOB8 running, F014-5 pending)
+15. [ ] Explainability and interpretation of results. (closes via F014 — JOB8 running on B-grid ckpts; amp/surface ckpts uploading (50%), F014-5 pending)
 16. [ ] Potential for further research, publication, or real-world deployment. (closes via F014-5 report section, pending JOB8)
 17. [ ] Reproducibility of code and results. (closes via F015-5 tag, pending F012/F014 — F012 now done)
 18. [x] GitHub repo with proper README.
