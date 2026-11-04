@@ -137,16 +137,19 @@ def main() -> None:
         ldv_by_id = {t: p for t, _, p in pairs}
         for variant in VARIANTS:
             ckpt = None
-            roots = [
-                os.path.join(args.ckpts, "v6", "ckpts", held),
-                os.path.join(args.ckpts, "v7", "ckpts", held),
-            ]
             if args.remote_ckpts:
-                roots.insert(0, os.path.join(args.remote_ckpts, held))
-            for root in roots:
-                cand = os.path.join(root, f"{variant}.pt")
+                cand = os.path.join(args.remote_ckpts, held, f"{variant}.pt")
                 if os.path.isfile(cand):
                     ckpt = cand
+            if ckpt is None and not args.remote_ckpts:
+                roots = [
+                    os.path.join(args.ckpts, "v6", "ckpts", held),
+                    os.path.join(args.ckpts, "v7", "ckpts", held),
+                ]
+                for root in roots:
+                    cand = os.path.join(root, f"{variant}.pt")
+                    if os.path.isfile(cand):
+                        ckpt = cand
             if ckpt is None:
                 print(f"SKIP {held}/{variant}: no ckpt", flush=True)
                 continue

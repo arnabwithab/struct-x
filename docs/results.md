@@ -137,7 +137,10 @@ Pretraining still converges in 1–11 epochs but lands at near-constant
 output: matched RMSE stays 1.9–2.6 (ridge: 0.29–0.66), i.e. no robustness
 gain from the Kinetics init. The one real signal: `both` nails relative
 frequency (err 0.02) while blowing amplitude (RMSE 2.63) — amplitude-blind
-physics with weak `L_LDV` anchoring on matched trials. B/AMP/representation
+physics with weak `L_LDV` anchoring on matched trials. Locally re-evaluated
+fixed-code amp ckpts (F014-style campaign, `results/amp_verdict.json`): Pearson r
+0.08±0.06 (`data_only`) and −0.01±0.02 (`both`) on matched trials — no
+waveform shape captured; physics erases even the residual correlation. B/AMP/representation
 are valid nulls (see §11 T3).
 
 ![Pretrained vs control](../results/figs/pretrained_vs_control.png)
