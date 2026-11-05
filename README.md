@@ -1,7 +1,8 @@
-<h1 align="center">struct-x</h1>
+<h1 align="center">Struct-X</h1>
 
 <p align="center">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" /></a>
+  <a href="paper/paper.pdf"><img src="https://img.shields.io/badge/paper-PDF-b31b1b" alt="Paper: PDF" /></a>
   <img src="https://img.shields.io/badge/python-3.10+-blue" alt="Python 3.10+" />
   <a href="https://www.kaggle.com/code/eros483/struct-x-train"><img src="https://img.shields.io/badge/NVIDIA_T4-76B900?logo=nvidia&logoColor=white" alt="Runs on NVIDIA T4" /></a>
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code_style-black-000000" alt="Code style: black" /></a>
