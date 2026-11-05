@@ -12,5 +12,4 @@ vox-store/
 data/XJTU-DV-Beam/
 SSH.md
 outputs-mini/
-
-paper/*.pdf
+paper/*.tex
