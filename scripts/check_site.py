@@ -11,20 +11,19 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 REQUIRED_IDS = [
-    "question",
-    "method",
-    "metrics",
-    "verdict",
-    "cost",
-    "survey",
-    "limitations",
-    "links",
+    "abstract",
+    "introduction",
+    "methods",
+    "results",
+    "conclusion",
+    "data-availability",
+    "acknowledgment",
+    "references",
 ]
 
 REQUIRED_IMGS = [
     "figs/o5_forest.png",
     "figs/matched_rmse.png",
-    "figs/pretrained_vs_control.png",
 ]
 
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
