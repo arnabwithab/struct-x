@@ -46,7 +46,7 @@ def main():
         ax.errorbar(r, i, xerr=s, fmt="o", capsize=4, label="R +/- sigma_R" if i == 0 else "")
     ax.axvline(0, color="k", lw=1)
     ax.set_yticks(range(len(FOLDS)))
-    ax.set_yticklabels(LABELS)
+    ax.set_yticklabels(FOLDS)
     ax.set_xlabel("R = Delta_base - Delta_phys (RMSE)")
     ax.legend()
     fig.tight_layout()
@@ -55,10 +55,10 @@ def main():
     # 2. Matched RMSE by fold x variant (control)
     fig, ax = plt.subplots(figsize=(9, 4))
     x = np.arange(len(FOLDS))
-    for j, var in enumerate(["data_only", "sdof_only", "both"]):
+    for j, var in enumerate(["data_only", "smoothness_only", "sdof_only", "both"]):
         means = [ctrl[h]["variants"][var]["rmse_matched"]["mean"] for h in FOLDS]
         stds = [ctrl[h]["variants"][var]["rmse_matched"]["std"] for h in FOLDS]
-        ax.bar(x + (j - 1) * 0.25, means, 0.25, yerr=stds, capsize=3, label=var)
+        ax.bar(x + (j - 1.5) * 0.2, means, 0.2, yerr=stds, capsize=3, label=var)
     ax.set_xticks(x)
     ax.set_xticklabels(FOLDS, rotation=20)
     ax.set_ylabel("matched test RMSE (z-scored units)")
